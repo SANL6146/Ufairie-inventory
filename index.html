@@ -269,6 +269,8 @@ body{
       <div class="set-card">
         <h3>📊 数据管理</h3>
         <button class="btn btn-s btn-b" style="margin-bottom:8px" onclick="Settings.exportData()">导出全部数据 (JSON)</button>
+        <button class="btn btn-s btn-b" style="margin-bottom:8px" onclick="document.getElementById('importFileInput').click()">导入数据 (JSON)</button>
+        <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="Settings.importData(this.files[0])">
         <button class="btn btn-d btn-b" onclick="Settings.reset()">重置所有数据</button>
       </div>
     </div>
@@ -1011,6 +1013,31 @@ const Settings = {
     const a=document.createElement('a');a.href=URL.createObjectURL(blob);
     a.download='护肤品库存备份_'+new Date().toISOString().slice(0,10)+'.json';
     a.click();UI.toast('数据已导出','success');
+  },
+
+  importData(file){
+    if(!file)return;
+    if(!confirm('⚠️ 导入数据会覆盖当前所有数据（品牌、产品、批次、记录），建议先导出一份备份。确定导入？'))return;
+    const reader=new FileReader();
+    reader.onload=e=>{
+      try{
+        const data=JSON.parse(e.target.result);
+        if(!data.brands||!data.products||!data.batches||!data.txs){
+          UI.toast('文件格式不正确，缺少必要数据','error');return;
+        }
+        localStorage.setItem('sk_brands',JSON.stringify(data.brands));
+        localStorage.setItem('sk_products',JSON.stringify(data.products));
+        localStorage.setItem('sk_batches',JSON.stringify(data.batches));
+        localStorage.setItem('sk_txs',JSON.stringify(data.txs));
+        UI.toast('数据已导入，页面即将刷新','success');
+        setTimeout(()=>location.reload(),800);
+      }catch{
+        UI.toast('文件解析失败，请检查是否为有效的JSON文件','error');
+      }
+    };
+    reader.readAsText(file);
+    // 重置 input 以便重复选择同一文件
+    document.getElementById('importFileInput').value='';
   },
 
   reset(){
