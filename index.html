@@ -317,20 +317,6 @@ body{
   <div id="v-settings" class="view">
     <div class="settings-wrap">
       <div class="set-card">
-        <h3>🔒 管理员密码</h3>
-        <p style="font-size:12px;color:var(--t2);margin-bottom:8px">设置密码后，新增/编辑/删除/出入库需要验证</p>
-        <div class="fg">
-          <label>新密码（留空则取消密码保护）</label>
-          <input type="password" id="setPwNew" placeholder="输入新密码">
-        </div>
-        <div class="fg" id="setPwOldGrp" style="display:none">
-          <label>当前密码</label>
-          <input type="password" id="setPwOld" placeholder="输入当前密码">
-        </div>
-        <button class="btn btn-p btn-b" onclick="Settings.save()">保存</button>
-        <p id="setMsg" style="font-size:11px;color:var(--t2);margin-top:8px"></p>
-      </div>
-      <div class="set-card">
         <h3>☁️ 云端同步</h3>
         <p style="font-size:12px;color:var(--t2);margin-bottom:8px">通过 GitHub 自动同步数据，多设备共享同一份库存</p>
         <div class="fg">
@@ -498,14 +484,8 @@ const Auth = {
     localStorage.setItem('sk_pw',btoa(pw));
   },
   check(pw){return btoa(pw)===localStorage.getItem('sk_pw')},
-  require(callback){
-    if(this.isAdmin){callback();return}
-    if(!this.hasPassword()){callback();return}
-    UI.showPassword('请输入管理员密码',(ok)=>{
-      if(ok){this.isAdmin=true;callback()}
-    });
-  },
-  isLocked(){return this.hasPassword() && !this.isAdmin}
+  require(callback){callback();},
+  isLocked(){return false}
 };
 
 /* ==================== GitHub 云同步 ==================== */
@@ -1408,7 +1388,6 @@ const Pages = {
   // === 设置 ===
   settings(){
     document.getElementById('headerTitle').textContent='⚙️ 设置';
-    if(Auth.hasPassword())document.getElementById('setPwOldGrp').style.display='block';
     Settings.initSync();
     UI.go('settings');
   },
@@ -1416,18 +1395,6 @@ const Pages = {
 
 /* ==================== 设置逻辑 ==================== */
 const Settings = {
-  save(){
-    const npw=document.getElementById('setPwNew').value;
-    if(Auth.hasPassword()){
-      const opw=document.getElementById('setPwOld').value;
-      if(!Auth.check(opw)){document.getElementById('setMsg').textContent='当前密码错误';return}
-    }
-    Auth.setPassword(npw);
-    Auth.isAdmin=!!npw;
-    document.getElementById('setMsg').textContent=npw?'密码已设置':'密码已取消';
-    document.getElementById('setPwNew').value='';document.getElementById('setPwOld').value='';
-    location.reload();
-  },
   exportData(){
     const data={stores:DB.stores(),brands:DB.brands(),products:DB.allProducts(),batches:DB.allBatches(),txs:DB.txs(),exported_at:new Date().toISOString()};
     const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
