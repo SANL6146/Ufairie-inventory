@@ -406,6 +406,13 @@ const Sync = {
   isAutoSync(){return localStorage.getItem('sk_gh_auto')!=='0'},
   setAutoSync(v){localStorage.setItem('sk_gh_auto',v?'1':'0')},
 
+  _decodeBase64(str){
+    const bin=atob(str);
+    const bytes=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  },
+
   async pull(silent){
     const token=this.getToken();
     if(!token)return false;
@@ -418,7 +425,7 @@ const Sync = {
         throw new Error(`GitHub API: ${res.status}`);
       }
       const j=await res.json();
-      const data=JSON.parse(atob(j.content));
+      const data=JSON.parse(this._decodeBase64(j.content));
       if(data.brands)localStorage.setItem('sk_brands',JSON.stringify(data.brands));
       if(data.products)localStorage.setItem('sk_products',JSON.stringify(data.products));
       if(data.batches)localStorage.setItem('sk_batches',JSON.stringify(data.batches));
