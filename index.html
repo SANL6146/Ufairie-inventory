@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>护肤品库存管理</title>
+<style>
+/* === 全局 === */
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --primary:#6C5CE7;--primary-light:#A29BFE;--success:#00B894;--warning:#FDCB6E;--danger:#E17055;
+  --bg:#F8F9FA;--card:#fff;--text:#2D3436;--t2:#636E72;--t3:#B2BEC3;--border:#DFE6E9;
+  --radius:12px;--shadow:0 2px 12px rgba(0,0,0,.06);--sb:env(safe-area-inset-bottom,16px);
+}
+html{font-size:16px;-webkit-text-size-adjust:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;
+  background:var(--bg);color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 18px;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;gap:6px;transition:.15s}
+.btn:active{transform:scale(.97)}
+.btn-p{background:var(--primary);color:#fff}
+.btn-s{background:var(--border);color:var(--text)}
+.btn-d{background:var(--danger);color:#fff}
+.btn-sm{padding:6px 12px;font-size:12px;border-radius:8px}
+.btn-xs{padding:4px 10px;font-size:11px;border-radius:6px}
+.btn-b{width:100%}
+.btn-icon{background:none;border:none;font-size:18px;cursor:pointer;padding:6px;border-radius:8px;line-height:1}
+.btn-icon:active{background:var(--border)}
+.hidden{display:none!important}
+.empty{text-align:center;padding:60px 20px;color:var(--t3);font-size:15px}
+
+/* === 头部 === */
+.header{position:sticky;top:0;z-index:100;background:var(--card);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.header-l{width:36px;display:flex;align-items:center;gap:6px}
+.header-t{flex:1;font-size:17px;font-weight:700;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 8px}
+.header-r{width:36px;display:flex;gap:2px;align-items:center;justify-content:flex-end}
+.btn-back{background:none;border:none;font-size:18px;cursor:pointer;padding:4px 6px;color:var(--text)}
+
+/* === 视图 === */
+.main{padding-bottom:calc(80px + var(--sb))}
+.view{display:none}
+.view.active{display:block}
+
+/* === 统计条 === */
+.stats{display:flex;gap:6px;padding:10px 14px;background:var(--card);border-bottom:1px solid var(--border)}
+.stats-i{flex:1;text-align:center;padding:6px 2px;border-radius:var(--radius);background:var(--bg)}
+.stats-i.warn{background:#FFF3E0}.stats-i.warn .stats-n{color:var(--warning)}
+.stats-i.danger{background:#FFEBEE}.stats-i.danger .stats-n{color:var(--danger)}
+.stats-n{display:block;font-size:18px;font-weight:700}
+.stats-l{display:block;font-size:10px;color:var(--t2);margin-top:1px}
+
+/* === 品牌卡片 === */
+.brand-list{padding:10px 14px}
+.brand-card{background:var(--card);border-radius:var(--radius);padding:16px;margin:8px 0;box-shadow:var(--shadow);cursor:pointer;display:flex;align-items:center;gap:14px;transition:.15s}
+.brand-card:active{transform:scale(.98)}
+.brand-avatar{width:48px;height:48px;border-radius:14px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0}
+.brand-info{flex:1;min-width:0}
+.brand-name{font-size:16px;font-weight:700}
+.brand-meta{font-size:12px;color:var(--t2);margin-top:2px}
+.brand-qty{font-size:13px;color:var(--t2);white-space:nowrap}
+.brand-avatar-img{width:48px;height:48px;border-radius:14px;object-fit:cover;flex-shrink:0}
+.brand-actions{display:flex;gap:4px;flex-shrink:0}
+.brand-actions .btn-icon{font-size:14px;padding:4px}
+
+/* === 产品卡片 === */
+.prod-list{padding:0 14px}
+.prod-card{background:var(--card);border-radius:var(--radius);padding:12px 14px;margin:6px 0;box-shadow:var(--shadow);cursor:pointer;display:flex;align-items:center;gap:12px;transition:.15s}
+.prod-card:active{transform:scale(.98)}
+.prod-thumb{width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;overflow:hidden;object-fit:cover}
+.pa-精华{background:#E8D5F5}.pa-面霜{background:#FFE0B2}.pa-眼霜{background:#C8E6C9}
+.pa-水{background:#BBDEFB}.pa-乳液{background:#F8BBD0}.pa-洁面{background:#B2EBF2}
+.pa-面膜{background:#D1C4E9}.pa-防晒{background:#FFF9C4}.pa-其他{background:#E0E0E0}
+.prod-info{flex:1;min-width:0}
+.prod-name{font-size:14px;font-weight:600}
+.prod-meta{font-size:11px;color:var(--t2);margin-top:1px}
+.prod-expiry{font-size:11px;color:var(--danger);margin-top:1px}
+.prod-expiry.ok{color:var(--t3)}
+.prod-qty{text-align:center;min-width:50px}
+.prod-qty-n{font-size:20px;font-weight:700;line-height:1.2}
+.prod-qty-n.low{color:var(--warning)}.prod-qty-n.normal{color:var(--primary)}
+.prod-qty-u{font-size:10px;color:var(--t2)}
+.prod-acts{display:flex;gap:4px;margin-top:4px}
+
+/* === 图片上传 === */
+.img-upload{position:relative;border:2px dashed var(--border);border-radius:var(--radius);padding:16px;text-align:center;cursor:pointer;transition:.15s;min-height:80px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.img-upload:hover{border-color:var(--primary-light)}
+.img-upload img{max-width:100%;max-height:180px;border-radius:8px;object-fit:contain}
+.img-upload .img-placeholder{color:var(--t3);font-size:13px}
+.img-upload-actions{display:flex;gap:6px;margin-top:6px;justify-content:center}
+.img-upload-actions .btn{font-size:11px;padding:4px 10px}
+
+/* === 搜索筛选 === */
+.search{background:var(--card);padding:10px 14px;border-bottom:1px solid var(--border)}
+.search-wrap{display:flex;align-items:center;background:var(--bg);border-radius:10px;padding:0 10px;gap:6px}
+.search-wrap input{flex:1;border:none;background:none;padding:9px 0;font-size:14px;outline:none;color:var(--text)}
+.search-wrap input::placeholder{color:var(--t3)}
+.s-icon{font-size:14px;opacity:.5}
+.s-clear{background:none;border:none;color:var(--t3);font-size:13px;cursor:pointer;padding:4px}
+.filter-row{display:flex;gap:6px;margin-top:8px}
+.filter-row select{flex:1;padding:7px 8px;border:1px solid var(--border);border-radius:8px;font-size:12px;background:var(--card);color:var(--text);outline:none}
+
+/* === 详情 === */
+.detail-wrap{padding:12px 14px}
+.detail-hero{text-align:center;padding:20px 14px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow)}
+.d-hero-img{width:100%;max-width:300px;max-height:220px;object-fit:contain;border-radius:var(--radius);margin-bottom:10px}
+.d-avatar{width:56px;height:56px;border-radius:14px;display:inline-flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:6px}
+.d-name{font-size:18px;font-weight:700}
+.d-brand{font-size:13px;color:var(--t2)}
+.d-qty-wrap{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:12px}
+.d-qty-btn{width:36px;height:36px;border-radius:50%;border:2px solid var(--primary);background:#fff;color:var(--primary);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.d-qty-btn:active{background:var(--primary);color:#fff}
+.d-qty-val{font-size:28px;font-weight:700;min-width:50px;text-align:center}
+.d-info{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-top:10px;padding:12px 14px}
+.d-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--bg);font-size:13px}
+.d-row:last-child{border:none}
+.d-label{color:var(--t2)}.d-value{font-weight:500}.d-value.warn{color:var(--danger)}
+.d-actions{display:flex;gap:8px;padding:12px 14px}
+.d-actions .btn{flex:1}
+
+/* === 批次列表 === */
+.batch-section{margin-top:10px}
+.batch-head{display:flex;align-items:center;justify-content:space-between;padding:8px 14px}
+.batch-head h3{font-size:15px;font-weight:600}
+.batch-card{background:var(--card);border-radius:var(--radius);padding:12px 14px;margin:6px 14px;box-shadow:var(--shadow)}
+.batch-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.batch-no{font-weight:700;font-size:13px}
+.batch-expiry{font-size:11px;padding:2px 8px;border-radius:6px}
+.batch-expiry.warn{background:#FFEBEE;color:var(--danger)}
+.batch-expiry.ok{background:#E6F9F1;color:var(--success)}
+.batch-info{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px}
+.batch-info span{color:var(--t2)}
+.batch-info strong{color:var(--text)}
+.batch-acts{display:flex;gap:6px;margin-top:10px;justify-content:flex-end}
+
+/* === Fab === */
+.fab{position:fixed;bottom:calc(20px + var(--sb));right:16px;width:50px;height:50px;border-radius:50%;background:var(--primary);color:#fff;font-size:26px;border:none;box-shadow:0 4px 16px rgba(108,92,231,.4);cursor:pointer;z-index:50;display:flex;align-items:center;justify-content:center;transition:.15s}
+.fab:active{transform:scale(.9)}
+
+/* === 弹窗 === */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:flex-end;animation:fIn .2s}
+.modal{background:var(--card);width:100%;border-radius:20px 20px 0 0;max-height:85vh;overflow-y:auto;padding-bottom:var(--sb);animation:sUp .25s}
+.modal-h{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border)}
+.modal-h h3{font-size:16px}.modal-close{background:none;border:none;font-size:18px;cursor:pointer;color:var(--t3);padding:4px}
+.modal-b{padding:16px 18px}
+
+/* === 表单 === */
+.fg{margin-bottom:12px}
+.fg label{display:block;font-size:12px;font-weight:600;color:var(--t2);margin-bottom:3px}
+.fg label .req{color:var(--danger)}
+.fg input,.fg select{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--card);color:var(--text);outline:none}
+.fg input:focus,.fg select:focus{border-color:var(--primary)}
+.fr{display:flex;gap:8px}.f1{flex:1}
+.fa{display:flex;gap:8px;margin-top:18px}.fa .btn{flex:1;padding:11px;font-size:14px}
+
+/* === 记录 === */
+.section-head{padding:14px 14px 8px}.section-head h2{font-size:17px}
+.tx-list{padding:0 14px}
+.tx-item{display:flex;align-items:center;gap:10px;padding:10px 12px;margin:4px 0;background:var(--card);border-radius:10px;box-shadow:var(--shadow);font-size:13px}
+.tx-badge{padding:2px 7px;border-radius:5px;font-size:10px;font-weight:700;white-space:nowrap}
+.tx-badge.in{background:#E6F9F1;color:var(--success)}.tx-badge.out{background:#FFEBEE;color:var(--danger)}
+.tx-info{flex:1}.tx-prod{font-weight:600}.tx-meta{font-size:11px;color:var(--t2)}.tx-time{font-size:10px;color:var(--t3);white-space:nowrap}
+
+/* === Toast === */
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;z-index:300;box-shadow:0 4px 16px rgba(0,0,0,.2);animation:fIn .2s;max-width:80vw;text-align:center}
+.toast.error{background:var(--danger)}.toast.success{background:var(--success)}
+
+/* === 密码弹窗 === */
+.pw-dialog{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:250;display:flex;align-items:center;justify-content:center;animation:fIn .2s}
+.pw-box{background:var(--card);border-radius:var(--radius);padding:24px 20px;width:280px;box-shadow:0 8px 32px rgba(0,0,0,.15)}
+.pw-box h3{font-size:16px;margin-bottom:4px}
+.pw-box p{font-size:12px;color:var(--t2);margin-bottom:14px}
+.pw-box input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:15px;outline:none}
+.pw-box input:focus{border-color:var(--primary)}
+.pw-acts{display:flex;gap:8px;margin-top:14px}
+.pw-acts .btn{flex:1;padding:10px;font-size:13px}
+
+/* === 设置页 === */
+.settings-wrap{padding:16px}
+.set-card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}
+.set-card h3{font-size:15px;margin-bottom:10px}
+.set-card .fg{margin-bottom:10px}
+
+@keyframes fIn{from{opacity:0}to{opacity:1}}
+@keyframes sUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+
+@media(min-width:768px){
+  body{background:#E8E8E8}
+  #app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--bg);box-shadow:0 0 40px rgba(0,0,0,.1)}
+  .fab{right:calc(50% - 210px)}
+}
+</style>
+</head>
+<body>
+<div id="app">
+<header class="header">
+  <div class="header-l">
+    <button class="btn-back hidden" id="btnBack">←</button>
+  </div>
+  <h1 class="header-t" id="headerTitle">悠小仙产品库存</h1>
+  <div class="header-r">
+    <button class="btn-icon" onclick="Pages.settings()" title="设置">⚙️</button>
+  </div>
+</header>
+
+<main class="main">
+  <!-- 品牌列表（首页） -->
+  <div id="v-brands" class="view active">
+    <div class="stats">
+      <div class="stats-i"><span class="stats-n" id="sBrands">--</span><span class="stats-l">品牌数</span></div>
+      <div class="stats-i"><span class="stats-n" id="sTotal">--</span><span class="stats-l">总产品</span></div>
+      <div class="stats-i warn"><span class="stats-n" id="sLow">--</span><span class="stats-l">库存不足</span></div>
+      <div class="stats-i danger"><span class="stats-n" id="sExpiry">--</span><span class="stats-l">临期批次</span></div>
+    </div>
+    <div class="brand-list" id="brandList"><div class="empty">加载中…</div></div>
+    <button class="fab" onclick="Pages.brandForm()">+</button>
+  </div>
+
+  <!-- 产品列表（品牌详情） -->
+  <div id="v-products" class="view">
+    <div class="search">
+      <div class="search-wrap">
+        <span class="s-icon">🔍</span>
+        <input type="text" id="prodSearch" placeholder="搜索产品…" oninput="Pages.search()">
+        <button class="s-clear hidden" id="sClear" onclick="Pages.clearSearch()">✕</button>
+      </div>
+      <div class="filter-row">
+        <select id="catFilter" onchange="Pages.search()"><option value="">全部分类</option></select>
+        <select id="sortFilter" onchange="Pages.search()">
+          <option value="default">默认</option><option value="qty_asc">库存少→多</option>
+          <option value="qty_desc">库存多→少</option><option value="expiry">临期优先</option>
+        </select>
+      </div>
+    </div>
+    <div class="prod-list" id="prodList"><div class="empty">暂无产品</div></div>
+    <button class="fab" onclick="Pages.productForm()">+</button>
+  </div>
+
+  <!-- 产品详情（含批次） -->
+  <div id="v-detail" class="view">
+    <div id="detailContent"></div>
+  </div>
+
+  <!-- 操作记录 -->
+  <div id="v-tx" class="view">
+    <div class="section-head"><h2>操作记录</h2></div>
+    <div class="tx-list" id="txList"><div class="empty">加载中…</div></div>
+  </div>
+
+  <!-- 设置 -->
+  <div id="v-settings" class="view">
+    <div class="settings-wrap">
+      <div class="set-card">
+        <h3>🔒 管理员密码</h3>
+        <p style="font-size:12px;color:var(--t2);margin-bottom:8px">设置密码后，新增/编辑/删除/出入库需要验证</p>
+        <div class="fg">
+          <label>新密码（留空则取消密码保护）</label>
+          <input type="password" id="setPwNew" placeholder="输入新密码">
+        </div>
+        <div class="fg" id="setPwOldGrp" style="display:none">
+          <label>当前密码</label>
+          <input type="password" id="setPwOld" placeholder="输入当前密码">
+        </div>
+        <button class="btn btn-p btn-b" onclick="Settings.save()">保存</button>
+        <p id="setMsg" style="font-size:11px;color:var(--t2);margin-top:8px"></p>
+      </div>
+      <div class="set-card">
+        <h3>📊 数据管理</h3>
+        <button class="btn btn-s btn-b" style="margin-bottom:8px" onclick="Settings.exportData()">导出全部数据 (JSON)</button>
+        <button class="btn btn-d btn-b" onclick="Settings.reset()">重置所有数据</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- 弹窗 -->
+<div class="modal-overlay hidden" id="modalOverlay">
+  <div class="modal" id="modal"><div class="modal-h"><h3 id="modalTitle"></h3><button class="modal-close" onclick="UI.closeModal()">✕</button></div><div class="modal-b" id="modalBody"></div></div>
+</div>
+<div class="toast hidden" id="toast"></div>
+</div>
+
+<script>
+/* ==================== 数据层 ==================== */
+const DB = {
+  _load(k){try{return JSON.parse(localStorage.getItem('sk_'+k))||[]}catch{return[]}},
+  _save(k,v){localStorage.setItem('sk_'+k,JSON.stringify(v))},
+  _nid(k){let n=(parseInt(localStorage.getItem('sk_nid_'+k))||0)+1;localStorage.setItem('sk_nid_'+k,n);return n},
+
+  brands(){return this._load('brands')},
+  saveBrands(v){this._save('brands',v)},
+  products(brandId){return this._load('products').filter(p=>p.brand_id==brandId)},
+  allProducts(){return this._load('products')},
+  saveProducts(v){this._save('products',v)},
+  batches(productId){return this._load('batches').filter(b=>b.product_id==productId)},
+  allBatches(){return this._load('batches')},
+  saveBatches(v){this._save('batches',v)},
+  txs(){return this._load('txs')},
+  saveTxs(v){this._save('txs',v)},
+
+  productQty(productId){return this.batches(productId).reduce((s,b)=>s+(b.quantity||0),0)},
+  productEarliestExpiry(productId){
+    const batches=this.batches(productId).filter(b=>b.expiration_date);
+    if(!batches.length)return null;
+    batches.sort((a,b)=>a.expiration_date.localeCompare(b.expiration_date));
+    return batches[0].expiration_date;
+  },
+  isExpiring(dateStr){
+    if(!dateStr)return false;
+    return (new Date(dateStr)-new Date())/86400000 <= 90;
+  },
+
+  stats(){
+    const products=this.allProducts();
+    const batches=this.allBatches();
+    const now=new Date();
+    let total=products.length;
+    let lowStock=0;
+    let nearExpiry=0;
+    products.forEach(p=>{
+      const qty=this.productQty(p.id);
+      if(qty<(p.min_stock||1))lowStock++;
+    });
+    batches.forEach(b=>{
+      if(b.expiration_date && (new Date(b.expiration_date)-now)/86400000<=90)nearExpiry++;
+    });
+    return {brandCount:this.brands().length,total,lowStock,nearExpiry};
+  }
+};
+
+/* ==================== 图片压缩 ==================== */
+function compressImage(file, maxWidth, quality){
+  return new Promise((resolve)=>{
+    const reader=new FileReader();
+    reader.onload=(e)=>{
+      const img=new Image();
+      img.onload=()=>{
+        const canvas=document.createElement('canvas');
+        let w=img.width,h=img.height;
+        const max=maxWidth||400;
+        if(w>max){h=h*max/w;w=max}
+        if(h>max){w=w*max/h;h=max}
+        canvas.width=w;canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL('image/jpeg',quality||0.6));
+      };
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ==================== 权限 ==================== */
+const Auth = {
+  isAdmin: false,
+  hasPassword(){return !!localStorage.getItem('sk_pw')},
+  setPassword(pw){
+    if(!pw){localStorage.removeItem('sk_pw');return}
+    localStorage.setItem('sk_pw',btoa(pw));
+  },
+  check(pw){return btoa(pw)===localStorage.getItem('sk_pw')},
+  require(callback){
+    if(this.isAdmin){callback();return}
+    if(!this.hasPassword()){callback();return}
+    UI.showPassword('请输入管理员密码',(ok)=>{
+      if(ok){this.isAdmin=true;callback()}
+    });
+  },
+  isLocked(){return this.hasPassword() && !this.isAdmin}
+};
+
+/* ==================== UI工具 ==================== */
+const UI = {
+  currentView:'brands',
+  viewStack:[],
+  currentBrandId:null,
+  currentProductId:null,
+  _tempImage:null, // 编辑表单时暂存的图片base64
+
+  toast(msg,type=''){
+    const el=document.getElementById('toast');
+    el.textContent=msg;el.className='toast '+type;
+    clearTimeout(this._tt);this._tt=setTimeout(()=>el.classList.add('hidden'),2000);
+  },
+
+  showModal(title,html){
+    document.getElementById('modalTitle').textContent=title;
+    document.getElementById('modalBody').innerHTML=html;
+    document.getElementById('modalOverlay').classList.remove('hidden');
+  },
+  closeModal(){document.getElementById('modalOverlay').classList.add('hidden')},
+
+  go(view){
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('v-'+view).classList.add('active');
+    this.currentView=view;
+    document.getElementById('btnBack').classList.toggle('hidden',view==='brands');
+    window.scrollTo(0,0);
+  },
+  goBack(){
+    if(this.currentView==='brands')return;
+    if(this.currentView==='products'){
+      this.go('brands');Pages.loadBrands();
+    }else if(this.currentView==='detail'){
+      this.go('products');Pages.loadProducts(this.currentBrandId);
+    }else if(this.currentView==='tx'){
+      if(this.currentProductId)Pages.showDetail(this.currentProductId);
+      else{this.go('brands');Pages.loadBrands();}
+    }else{
+      this.go('brands');Pages.loadBrands();
+    }
+  },
+
+  esc(s){if(!s)return'';const d=document.createElement('div');d.textContent=s;return d.innerHTML},
+  catEmoji(c){const m={'精华':'✨','面霜':'🧴','眼霜':'👁️','水':'💧','乳液':'🧴','洁面':'🧼','面膜':'🎭','防晒':'☀️','其他':'📦'};return m[c]||'📦'},
+  catClass(c){return 'pa-'+(c||'其他')},
+  fmtDate(d){return d||'--'},
+
+  /* 图片上传区域HTML生成 */
+  imgUploadHtml(currentBase64){
+    const hasImg=currentBase64&&currentBase64.startsWith('data:');
+    let html='<div class="img-upload" id="imgUploadBox" onclick="Pages.pickImage()">';
+    if(hasImg){
+      html+='<img src="'+currentBase64+'" alt="产品图片" id="imgPreview">';
+    }else{
+      html+='<div class="img-placeholder">📷 点击上传产品图片（可选）</div>';
+    }
+    html+='</div>';
+    if(hasImg){
+      html+='<div class="img-upload-actions">'+
+        '<button type="button" class="btn btn-sm btn-s" onclick="event.stopPropagation();Pages.pickImage()">🔄 更换</button>'+
+        '<button type="button" class="btn btn-sm btn-d" onclick="event.stopPropagation();Pages.clearImage()">✕ 删除</button>'+
+      '</div>';
+    }
+    return html;
+  },
+
+  showPassword(msg,cb){
+    const div=document.createElement('div');
+    div.className='pw-dialog';
+    div.innerHTML=`<div class="pw-box">
+      <h3>🔒 需要密码</h3><p>${msg}</p>
+      <input type="password" id="pwInput" placeholder="输入管理员密码" autofocus>
+      <div class="pw-acts">
+        <button class="btn btn-s" onclick="this.closest('.pw-dialog').remove()">取消</button>
+        <button class="btn btn-p" id="pwConfirm">确认</button>
+      </div>
+    </div>`;
+    document.body.appendChild(div);
+    const input=div.querySelector('#pwInput');
+    input.focus();
+    const confirm=()=>{
+      const pw=input.value;
+      div.remove();
+      if(Auth.check(pw)){Auth.isAdmin=true;cb(true)}
+      else{UI.toast('密码错误','error');cb(false)}
+    };
+    div.querySelector('#pwConfirm').onclick=confirm;
+    input.onkeydown=e=>{if(e.key==='Enter')confirm()};
+    div.onclick=e=>{if(e.target===div)div.remove()};
+  }
+};
+
+/* ==================== 页面逻辑 ==================== */
+const Pages = {
+  // === 品牌首页 ===
+  loadBrands(){
+    document.getElementById('headerTitle').textContent='悠小仙产品库存';
+    const brands=DB.brands();
+    const stats=DB.stats();
+    document.getElementById('sBrands').textContent=stats.brandCount;
+    document.getElementById('sTotal').textContent=stats.total;
+    document.getElementById('sLow').textContent=stats.lowStock;
+    document.getElementById('sExpiry').textContent=stats.nearExpiry;
+
+    const container=document.getElementById('brandList');
+    if(!brands.length){container.innerHTML='<div class="empty">暂无品牌，点击右下角 + 添加</div>';return}
+
+    container.innerHTML=brands.map(b=>{
+      const bp=DB.products(b.id);
+      const tq=bp.reduce((s,p)=>s+DB.productQty(p.id),0);
+      const lw=bp.filter(p=>DB.productQty(p.id)<(p.min_stock||1)).length;
+      return `<div class="brand-card" onclick="Pages.openBrand(${b.id})">
+        ${b.image?`<img class="brand-avatar-img" src="${b.image}" alt="${UI.esc(b.name)}">`:`<div class="brand-avatar">${UI.esc(b.name).charAt(0)}</div>`}
+        <div class="brand-info">
+          <div class="brand-name">${UI.esc(b.name)}</div>
+          <div class="brand-meta">${bp.length} 款产品 · 总库存 ${tq} 件${lw?' · ⚠️'+lw+'款不足':''}</div>
+        </div>
+        ${Auth.isLocked()?'':`<div class="brand-actions" onclick="event.stopPropagation()">
+          <button class="btn-icon" onclick="Pages.brandForm(${b.id})" title="编辑">✏️</button>
+          <button class="btn-icon" onclick="Pages.deleteBrand(${b.id})" title="删除">🗑️</button>
+        </div>`}
+        <div class="brand-arrow">›</div>
+      </div>`;
+    }).join('');
+    UI.go('brands');
+  },
+
+  openBrand(id){
+    UI.currentBrandId=id;
+    const brand=DB.brands().find(b=>b.id==id);
+    document.getElementById('headerTitle').textContent=brand?brand.name:'产品列表';
+    Pages.loadProducts(id);
+  },
+
+  brandForm(editId){
+    const b=editId?DB.brands().find(x=>x.id==editId):null;
+    UI._tempImage=b?b.image||null:null;
+    const cb=()=>UI.showModal(
+      b?'编辑品牌':'新增品牌',
+      `<form onsubmit="Pages.saveBrand(event,${editId||0})">
+        <div class="fg"><label>品牌名称 <span class="req">*</span></label>
+          <input type="text" id="bfName" required value="${UI.esc(b?b.name:'')}" placeholder="如：资生堂"></div>
+        <div class="fg"><label>品牌图片</label>
+          ${UI.imgUploadHtml(b?b.image:'')}</div>
+        <div class="fa">
+          <button type="button" class="btn btn-s" onclick="UI.closeModal()">取消</button>
+          <button type="submit" class="btn btn-p">保存</button>
+        </div></form>`);
+    Auth.require(cb);
+  },
+
+  saveBrand(e,editId){
+    e.preventDefault();
+    const name=document.getElementById('bfName').value.trim();
+    const image=UI._tempImage||'';
+    const brands=DB.brands();
+    if(editId){
+      const idx=brands.findIndex(b=>b.id==editId);
+      if(idx!==-1){brands[idx].name=name;brands[idx].image=image;}
+    }else{
+      brands.push({id:DB._nid('brand'),name,image,created_at:new Date().toISOString()});
+    }
+    DB.saveBrands(brands);
+    UI.closeModal();
+    Pages.loadBrands();
+    UI.toast(editId?'品牌已更新':'品牌已添加','success');
+  },
+
+  deleteBrand(id){
+    if(!confirm('删除品牌会同时删除其下所有产品、批次和操作记录，确定？'))return;
+    const cb=()=>{
+      const productIds=DB.allProducts().filter(p=>p.brand_id==id).map(p=>p.id);
+      let products=DB.allProducts().filter(p=>p.brand_id!=id);
+      let batches=DB.allBatches().filter(b=>!productIds.includes(b.product_id));
+      let txs=DB.txs().filter(t=>!productIds.includes(t.product_id));
+      DB.saveProducts(products);DB.saveBatches(batches);DB.saveTxs(txs);
+      DB.saveBrands(DB.brands().filter(b=>b.id!=id));
+      Pages.loadBrands();UI.toast('品牌已删除','success');
+    };
+    Auth.require(cb);
+  },
+
+  // === 产品列表 ===
+  loadProducts(brandId){
+    UI.currentBrandId=brandId;
+    const brand=DB.brands().find(b=>b.id==brandId);
+    document.getElementById('headerTitle').textContent=brand?brand.name:'产品列表';
+    this._renderProducts();
+    UI.go('products');
+  },
+
+  search(){
+    const kw=document.getElementById('prodSearch').value.toLowerCase();
+    document.getElementById('sClear').classList.toggle('hidden',!kw);
+    this._renderProducts(kw);
+  },
+  clearSearch(){
+    document.getElementById('prodSearch').value='';
+    document.getElementById('sClear').classList.add('hidden');
+    this._renderProducts();
+  },
+
+  _renderProducts(keyword){
+    const cat=document.getElementById('catFilter').value;
+    const sort=document.getElementById('sortFilter').value;
+    let products=DB.products(UI.currentBrandId);
+
+    const cats=[...new Set(products.map(p=>p.category).filter(Boolean))];
+    const catSelect=document.getElementById('catFilter');
+    catSelect.innerHTML='<option value="">全部分类</option>'+cats.map(c=>`<option value="${c}" ${c===cat?'selected':''}>${c}</option>`).join('');
+
+    if(keyword)products=products.filter(p=>p.name.toLowerCase().includes(keyword)||(p.remarks||'').toLowerCase().includes(keyword)||(p.specification||'').toLowerCase().includes(keyword));
+    if(cat)products=products.filter(p=>p.category===cat);
+    if(sort==='qty_asc')products.sort((a,b)=>DB.productQty(a.id)-DB.productQty(b.id));
+    else if(sort==='qty_desc')products.sort((a,b)=>DB.productQty(b.id)-DB.productQty(a.id));
+    else if(sort==='expiry')products.sort((a,b)=>(DB.productEarliestExpiry(a.id)||'9999').localeCompare(DB.productEarliestExpiry(b.id)||'9999'));
+
+    const container=document.getElementById('prodList');
+    if(!products.length){container.innerHTML='<div class="empty">暂无产品，点击右下角 + 添加</div>';return}
+
+    container.innerHTML=products.map(p=>{
+      const qty=DB.productQty(p.id);
+      const qc=qty<=(p.min_stock||1)?'low':'normal';
+      const exp=DB.productEarliestExpiry(p.id);
+      const isExp=exp&&DB.isExpiring(exp);
+      const expHtml=exp?`<div class="prod-expiry${isExp?'':' ok'}">📅 ${isExp?'⚠️临期: '+exp:'保质期: '+exp}</div>`:'';
+
+      // 产品缩略图：有图片显示图片，没有显示分类表情
+      const thumbHtml=p.image
+        ?`<img class="prod-thumb" src="${p.image}" alt="${UI.esc(p.name)}">`
+        :`<div class="prod-thumb ${UI.catClass(p.category)}">${UI.catEmoji(p.category)}</div>`;
+
+      const metaParts=[];
+      if(p.specification)metaParts.push(UI.esc(p.specification));
+      metaParts.push(DB.batches(p.id).length+'个批次');
+      const meta=metaParts.join(' · ');
+
+      return `<div class="prod-card" onclick="Pages.showDetail(${p.id})">
+        ${thumbHtml}
+        <div class="prod-info">
+          <div class="prod-name">${UI.esc(p.name)}</div>
+          <div class="prod-meta">${meta}</div>
+          ${expHtml}
+          <div class="prod-acts" onclick="event.stopPropagation()">
+            <button class="btn btn-sm btn-p" onclick="Pages.quickTx(${p.id},'out')">出库</button>
+            <button class="btn btn-sm btn-s" onclick="Pages.quickTx(${p.id},'in')">入库</button>
+          </div>
+        </div>
+        <div class="prod-qty">
+          <div class="prod-qty-n ${qc}">${qty}</div>
+          <div class="prod-qty-u">${UI.esc(p.unit)}</div>
+        </div>
+      </div>`;
+    }).join('');
+  },
+
+  quickTx(productId,type){
+    const cb=()=>{
+      const p=DB.allProducts().find(x=>x.id==productId);
+      if(!p)return;
+      const batches=DB.batches(productId);
+      if(type==='out'&&!batches.length){UI.toast('该产品无批次库存','error');return}
+
+      let batchOptions=batches.map(b=>{
+        const isExp=b.expiration_date&&DB.isExpiring(b.expiration_date);
+        return `<option value="${b.id}" ${isExp?'style="color:var(--danger)"':''}>
+          批次${UI.esc(b.batch_no)} | ${UI.fmtDate(b.expiration_date)} | 库存${b.quantity}${p.unit}
+        </option>`;
+      }).join('');
+
+      UI.showModal(
+        type==='out'?'📤 出库 - '+p.name:'📥 入库 - '+p.name,
+        `<div style="text-align:center;margin-bottom:10px;color:var(--t2);font-size:13px">
+          总库存: <strong>${DB.productQty(productId)}</strong> ${UI.esc(p.unit)}
+        </div>
+        ${type==='out'?`<div class="fg"><label>出库批次</label><select id="txBatchId">${batchOptions}</select></div>`:
+        `<div class="fg"><label>批次号</label><input type="text" id="txBatchNoNew" placeholder="如：B20260728"></div>
+         <div class="fg"><label>生产日期</label><input type="date" id="txProdDate"></div>
+         <div class="fg"><label>保质期</label><input type="date" id="txExpDate"></div>`}
+        <div class="fg" style="margin-top:12px"><label>数量</label>
+          <div style="display:flex;align-items:center;gap:14px;justify-content:center">
+            <button type="button" class="d-qty-btn" onclick="let e=document.getElementById('txQty');e.value=Math.max(1,parseInt(e.value||1)-1)">−</button>
+            <input type="number" id="txQty" value="1" min="1" style="width:60px;text-align:center;font-size:20px;font-weight:700;border:none;background:var(--bg);border-radius:8px;padding:6px">
+            <button type="button" class="d-qty-btn" onclick="let e=document.getElementById('txQty');e.value=parseInt(e.value||1)+1">+</button>
+          </div>
+        </div>
+        <div class="fg"><label>备注</label><input type="text" id="txRemarks" placeholder="选填"></div>
+        <button class="btn btn-p btn-b" onclick="Pages.confirmTx(${productId},'${type}')">确认${type==='out'?'出库':'入库'}</button>`
+      );
+    };
+    Auth.require(cb);
+  },
+
+  confirmTx(productId,type){
+    const qty=parseInt(document.getElementById('txQty').value)||1;
+    const remarks=document.getElementById('txRemarks').value||'';
+    let allBatches=DB.allBatches();
+    const p=DB.allProducts().find(x=>x.id==productId);
+
+    if(type==='out'){
+      const batchId=parseInt(document.getElementById('txBatchId').value);
+      const idx=allBatches.findIndex(b=>b.id==batchId);
+      if(idx===-1||allBatches[idx].quantity<qty){UI.toast('库存不足','error');return}
+      allBatches[idx].quantity-=qty;
+    }else{
+      const batchNo=document.getElementById('txBatchNoNew').value||('B'+new Date().toISOString().slice(0,10).replace(/-/g,''));
+      const prodDate=document.getElementById('txProdDate').value;
+      const expDate=document.getElementById('txExpDate').value;
+      allBatches.push({
+        id:DB._nid('batch'),product_id:productId,batch_no:batchNo,
+        production_date:prodDate,expiration_date:expDate,
+        quantity:qty,purchase_date:new Date().toISOString().slice(0,10),
+        remarks:'',created_at:new Date().toISOString()
+      });
+    }
+    DB.saveBatches(allBatches);
+
+    const txs=DB.txs();
+    txs.unshift({id:Date.now(),product_id:productId,type,quantity:qty,operator:Auth.isAdmin?'管理员':'用户',remarks,created_at:new Date().toISOString()});
+    DB.saveTxs(txs);
+
+    UI.closeModal();
+    UI.toast(`${type==='out'?'出':'入'}库 ${qty} ${UI.esc(p?p.unit:'件')}`,'success');
+    if(UI.currentView==='detail')Pages.showDetail(productId);
+    else Pages._renderProducts();
+    if(UI.currentView==='brands')Pages.loadBrands();
+  },
+
+  /* === 图片上传 === */
+  pickImage(){
+    const input=document.createElement('input');
+    input.type='file';
+    input.accept='image/*';
+    input.onchange=async(e)=>{
+      const file=e.target.files[0];
+      if(!file)return;
+      if(file.size>5*1024*1024){UI.toast('图片不能超过5MB','error');return}
+      UI.toast('压缩中…','');
+      const base64=await compressImage(file,400,0.6);
+      UI._tempImage=base64;
+      // 刷新预览
+      const box=document.getElementById('imgUploadBox');
+      if(box){
+        box.innerHTML=`<img src="${base64}" alt="产品图片" id="imgPreview">`;
+        // 添加删除按钮
+        let actions=box.parentNode.querySelector('.img-upload-actions');
+        if(!actions){
+          actions=document.createElement('div');
+          actions.className='img-upload-actions';
+          actions.innerHTML=`<button type="button" class="btn btn-sm btn-s" onclick="event.stopPropagation();Pages.pickImage()">🔄 更换</button>
+            <button type="button" class="btn btn-sm btn-d" onclick="event.stopPropagation();Pages.clearImage()">✕ 删除</button>`;
+          box.parentNode.appendChild(actions);
+        }
+      }
+    };
+    input.click();
+  },
+
+  clearImage(){
+    UI._tempImage=null;
+    const box=document.getElementById('imgUploadBox');
+    if(box){
+      box.innerHTML='<div class="img-placeholder">📷 点击上传产品图片（可选）</div>';
+      const actions=box.parentNode.querySelector('.img-upload-actions');
+      if(actions)actions.remove();
+    }
+  },
+
+  // === 产品表单 ===
+  productForm(editId){
+    const p=editId?DB.allProducts().find(x=>x.id==editId):null;
+    UI._tempImage=p?p.image||null:null;
+
+    const cb=()=>UI.showModal(
+      p?'编辑产品':'新增产品',
+      `<form onsubmit="Pages.saveProduct(event,${editId||0})">
+        <div class="fg"><label>产品名称 <span class="req">*</span></label>
+          <input type="text" id="pfName" required value="${UI.esc(p?p.name:'')}" placeholder="如：红腰子精华"></div>
+        <div class="fr">
+          <div class="fg f1"><label>类别</label>
+            <select id="pfCat">${['','精华','面霜','眼霜','水','乳液','洁面','面膜','防晒','其他'].map(c=>`<option ${(p&&p.category===c)?'selected':''}>${c||'请选择'}</option>`).join('')}</select></div>
+          <div class="fg f1"><label>规格</label>
+            <input type="text" id="pfSpec" value="${UI.esc(p?p.specification:'')}" placeholder="如：30ml"></div>
+        </div>
+        <div class="fr">
+          <div class="fg f1"><label>单位</label>
+            <select id="pfUnit">${['瓶','支','盒','片','套'].map(u=>`<option ${(p&&p.unit===u)?'selected':''}>${u}</option>`).join('')}</select></div>
+          <div class="fg f1"><label>最低库存预警</label>
+            <input type="number" id="pfMin" value="${p?p.min_stock||1:1}" min="0"></div>
+        </div>
+        <div class="fg"><label>产品图片</label>
+          ${UI.imgUploadHtml(p?p.image:'')}</div>
+        <div class="fg"><label>备注</label>
+          <input type="text" id="pfRemarks" value="${UI.esc(p?p.remarks:'')}" placeholder="补充说明等"></div>
+        <div class="fa">
+          <button type="button" class="btn btn-s" onclick="UI.closeModal()">取消</button>
+          <button type="submit" class="btn btn-p">保存</button>
+        </div></form>`);
+    Auth.require(cb);
+  },
+
+  saveProduct(e,editId){
+    e.preventDefault();
+    const image=UI._tempImage||'';
+    const data={
+      brand_id:UI.currentBrandId,
+      name:document.getElementById('pfName').value.trim(),
+      category:document.getElementById('pfCat').value,
+      specification:document.getElementById('pfSpec').value.trim(),
+      unit:document.getElementById('pfUnit').value,
+      min_stock:parseInt(document.getElementById('pfMin').value)||1,
+      image:image,
+      remarks:document.getElementById('pfRemarks').value.trim(),
+    };
+    let products=DB.allProducts();
+    if(editId){
+      const idx=products.findIndex(p=>p.id==editId);
+      if(idx!==-1)products[idx]={...products[idx],...data,updated_at:new Date().toISOString()};
+    }else{
+      products.push({id:DB._nid('prod'),...data,created_at:new Date().toISOString(),updated_at:new Date().toISOString()});
+    }
+    DB.saveProducts(products);
+    UI.closeModal();
+    Pages._renderProducts();
+    UI.toast(editId?'产品已更新':'产品已添加','success');
+  },
+
+  deleteProduct(id){
+    if(!confirm('删除产品会同时删除其所有批次数据，确定？'))return;
+    const cb=()=>{
+      DB.saveProducts(DB.allProducts().filter(p=>p.id!=id));
+      DB.saveBatches(DB.allBatches().filter(b=>b.product_id!=id));
+      Pages.loadProducts(UI.currentBrandId);
+      UI.toast('产品已删除','success');
+    };
+    Auth.require(cb);
+  },
+
+  // === 产品详情（含批次） ===
+  showDetail(id){
+    UI.currentProductId=id;
+    const p=DB.allProducts().find(x=>x.id==id);
+    if(!p){UI.toast('产品不存在','error');return}
+    const brand=DB.brands().find(b=>b.id==p.brand_id);
+    const qty=DB.productQty(id);
+    const batches=DB.batches(id);
+    const qc=qty<=(p.min_stock||1)?'low':'';
+
+    document.getElementById('headerTitle').textContent=p.name;
+
+    let batchesHtml='';
+    if(batches.length){
+      batchesHtml=batches.sort((a,b)=>a.expiration_date.localeCompare(b.expiration_date)).map(b=>{
+        const isExp=b.expiration_date&&DB.isExpiring(b.expiration_date);
+        return `<div class="batch-card">
+          <div class="batch-header">
+            <span class="batch-no">📦 批次 ${UI.esc(b.batch_no)}</span>
+            <span class="batch-expiry ${isExp?'warn':'ok'}">${b.expiration_date? (isExp?'⚠️ 临期: ':'保质至: ')+b.expiration_date:'未知保质期'}</span>
+          </div>
+          <div class="batch-info">
+            <span>生产日期: <strong>${UI.fmtDate(b.production_date)}</strong></span>
+            <span>购入日期: <strong>${UI.fmtDate(b.purchase_date)}</strong></span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+            <span style="font-size:12px;color:var(--t2)">库存: <strong style="font-size:18px;color:${b.quantity?'var(--text)':'var(--danger)'}">${b.quantity}</strong> ${UI.esc(p.unit)}</span>
+            ${Auth.isLocked()?'':`<div class="batch-acts" style="margin:0">
+              <button class="btn btn-xs btn-s" onclick="Pages.batchForm(${b.id},${id})">✏️</button>
+              <button class="btn btn-xs btn-d" onclick="Pages.deleteBatch(${b.id},${id})">🗑️</button>
+            </div>`}
+          </div>
+        </div>`;
+      }).join('');
+    }else{
+      batchesHtml='<div class="empty" style="padding:30px">暂无批次，点击下方添加</div>';
+    }
+
+    // 产品图片
+    const heroImgHtml=p.image?`<img class="d-hero-img" src="${p.image}" alt="${UI.esc(p.name)}">`:
+      `<div class="d-avatar ${UI.catClass(p.category)}">${UI.catEmoji(p.category)}</div>`;
+
+    // 信息行
+    let infoRows='';
+    infoRows+=Pages._dRow('规格',p.specification);
+    infoRows+=Pages._dRow('类别',p.category);
+    infoRows+=Pages._dRow('最低库存',(p.min_stock||1)+' '+UI.esc(p.unit));
+    infoRows+=Pages._dRow('备注',p.remarks);
+
+    document.getElementById('detailContent').innerHTML=`
+      <div class="detail-wrap">
+        <div class="detail-hero">
+          ${heroImgHtml}
+          <div class="d-name">${UI.esc(p.name)}</div>
+          <div class="d-brand">${UI.esc(brand?brand.name:'')} · ${UI.esc(p.category)}${p.specification?' · '+UI.esc(p.specification):''}</div>
+          <div class="d-qty-wrap">
+            <button class="d-qty-btn" onclick="Pages.quickTx(${p.id},'out')">−</button>
+            <div class="d-qty-val ${qc}">${qty}</div>
+            <button class="d-qty-btn" onclick="Pages.quickTx(${p.id},'in')">+</button>
+          </div>
+          <div style="font-size:12px;color:var(--t2)">${UI.esc(p.unit)}${qty<=(p.min_stock||1)?' ⚠️库存不足':''}</div>
+        </div>
+        <div class="d-info">
+          ${infoRows||'<div class="d-row"><span class="d-label" style="color:var(--t3)">暂无更多信息</span></div>'}
+        </div>
+        ${Auth.isLocked()?'':`<div class="d-actions">
+          <button class="btn btn-s btn-sm" onclick="Pages.productForm(${p.id})">✏️ 编辑产品</button>
+          <button class="btn btn-d btn-sm" onclick="Pages.deleteProduct(${p.id})">🗑️ 删除产品</button>
+        </div>`}
+        <div class="batch-section">
+          <div class="batch-head">
+            <h3>📋 批次管理 (${batches.length})</h3>
+            ${Auth.isLocked()?'':'<button class="btn btn-sm btn-p" onclick="Pages.batchForm(null,${p.id})">+ 新批次</button>'}
+          </div>
+          ${batchesHtml}
+        </div>
+        <div style="padding:12px 14px">
+          <button class="btn btn-s btn-sm btn-b" onclick="Pages.showTxs(${p.id})">📋 查看操作记录</button>
+        </div>
+      </div>`;
+    UI.go('detail');
+  },
+
+  _dRow(label,value){
+    if(!value)return'';
+    return`<div class="d-row"><span class="d-label">${label}</span><span class="d-value">${UI.esc(String(value))}</span></div>`;
+  },
+
+  batchForm(batchId,productId){
+    const b=batchId?DB.allBatches().find(x=>x.id==batchId):null;
+    const p=DB.allProducts().find(x=>x.id==productId);
+    const cb=()=>UI.showModal(
+      b?'编辑批次':'新增批次 - '+UI.esc(p?p.name:''),
+      `<form onsubmit="Pages.saveBatch(event,${batchId||0},${productId})">
+        ${!b?`<div class="fg"><label>批次号 <span class="req">*</span></label>
+          <input type="text" id="bfBatchNo" required placeholder="如：B20260728" value="B${new Date().toISOString().slice(0,10).replace(/-/g,'')}"></div>`:''}
+        <div class="fr">
+          <div class="fg f1"><label>生产日期</label><input type="date" id="bfProd" value="${b?b.production_date||'':''}"></div>
+          <div class="fg f1"><label>保质期至 <span class="req">*</span></label><input type="date" id="bfExp" required value="${b?b.expiration_date||'':''}"></div>
+        </div>
+        <div class="fr">
+          <div class="fg f1"><label>数量 <span class="req">*</span></label><input type="number" id="bfQty" required min="0" value="${b?b.quantity:0}"></div>
+          <div class="fg f1"><label>购入日期</label><input type="date" id="bfPurch" value="${(b&&b.purchase_date)||new Date().toISOString().slice(0,10)}"></div>
+        </div>
+        <div class="fg"><label>备注</label><input type="text" id="bfRemarks" value="${UI.esc(b?b.remarks:'')}" placeholder="选填"></div>
+        <div class="fa">
+          <button type="button" class="btn btn-s" onclick="UI.closeModal()">取消</button>
+          <button type="submit" class="btn btn-p">保存</button>
+        </div></form>`);
+    Auth.require(cb);
+  },
+
+  saveBatch(e,editId,productId){
+    e.preventDefault();
+    const data={
+      product_id:productId,
+      batch_no:editId?'':document.getElementById('bfBatchNo').value.trim(),
+      production_date:document.getElementById('bfProd').value,
+      expiration_date:document.getElementById('bfExp').value,
+      quantity:parseInt(document.getElementById('bfQty').value)||0,
+      purchase_date:document.getElementById('bfPurch').value,
+      remarks:document.getElementById('bfRemarks').value.trim(),
+    };
+    let batches=DB.allBatches();
+    if(editId){
+      const idx=batches.findIndex(b=>b.id==editId);
+      if(idx!==-1){data.batch_no=batches[idx].batch_no;batches[idx]={...batches[idx],...data};}
+    }else{
+      batches.push({id:DB._nid('batch'),...data,created_at:new Date().toISOString()});
+    }
+    DB.saveBatches(batches);
+    UI.closeModal();
+    Pages.showDetail(productId);
+    UI.toast(editId?'批次已更新':'批次已添加','success');
+  },
+
+  deleteBatch(batchId,productId){
+    if(!confirm('确定删除该批次？'))return;
+    const cb=()=>{
+      DB.saveBatches(DB.allBatches().filter(b=>b.id!=batchId));
+      Pages.showDetail(productId);
+      UI.toast('批次已删除','success');
+    };
+    Auth.require(cb);
+  },
+
+  // === 操作记录 ===
+  showTxs(productId){
+    UI.currentProductId=productId;
+    const p=DB.allProducts().find(x=>x.id==productId);
+    document.getElementById('headerTitle').textContent=(p?p.name:'产品')+' - 操作记录';
+    const txs=DB.txs().filter(t=>t.product_id==productId);
+    const container=document.getElementById('txList');
+    if(!txs.length){container.innerHTML='<div class="empty">暂无操作记录</div>'}
+    else{
+      container.innerHTML=txs.map(t=>`<div class="tx-item">
+        <span class="tx-badge ${t.type}">${t.type==='in'?'入库':'出库'}</span>
+        <span style="font-size:13px;font-weight:600;margin-right:4px">${t.quantity}件</span>
+        <div class="tx-info">
+          <span class="tx-meta">${UI.esc(t.operator)}${t.remarks?' · '+UI.esc(t.remarks):''}</span>
+        </div>
+        <span class="tx-time">${new Date(t.created_at).toLocaleString('zh-CN')}</span>
+      </div>`).join('');
+    }
+    UI.go('tx');
+  },
+
+  // === 设置 ===
+  settings(){
+    document.getElementById('headerTitle').textContent='⚙️ 设置';
+    if(Auth.hasPassword()){
+      document.getElementById('setPwOldGrp').style.display='block';
+    }
+    UI.go('settings');
+  },
+};
+
+/* ==================== 设置逻辑 ==================== */
+const Settings = {
+  save(){
+    const npw=document.getElementById('setPwNew').value;
+    if(Auth.hasPassword()){
+      const opw=document.getElementById('setPwOld').value;
+      if(!Auth.check(opw)){document.getElementById('setMsg').textContent='当前密码错误';return}
+    }
+    Auth.setPassword(npw);
+    Auth.isAdmin=!!npw;
+    document.getElementById('setMsg').textContent=npw?'密码已设置':'密码已取消，修改不再需要验证';
+    document.getElementById('setPwNew').value='';
+    document.getElementById('setPwOld').value='';
+    location.reload();
+  },
+
+  exportData(){
+    const data={
+      brands:DB.brands(),products:DB.allProducts(),batches:DB.allBatches(),txs:DB.txs(),
+      exported_at:new Date().toISOString()
+    };
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    a.download='护肤品库存备份_'+new Date().toISOString().slice(0,10)+'.json';
+    a.click();UI.toast('数据已导出','success');
+  },
+
+  reset(){
+    if(!confirm('⚠️ 确定重置所有数据？此操作不可恢复！\n\n建议先导出备份。'))return;
+    if(confirm('再次确认：删除所有品牌、产品、批次和记录？')){
+      ['brands','products','batches','txs'].forEach(k=>localStorage.removeItem('sk_'+k));
+      location.reload();
+    }
+  }
+};
+
+/* ==================== 初始化和事件 ==================== */
+document.getElementById('btnBack').onclick=()=>UI.goBack();
+document.getElementById('modalOverlay').onclick=e=>{if(e.target===document.getElementById('modalOverlay'))UI.closeModal()};
+
+// 插入示例数据（首次使用）
+(function initDemo(){
+  if(DB.brands().length>0)return;
+  const brands=[
+    {id:1,name:'资生堂'},{id:2,name:'SK-II'},{id:3,name:'雅诗兰黛'},
+    {id:4,name:'科颜氏'},{id:5,name:'赫莲娜'},{id:6,name:'黛珂'}
+  ].map((b,i)=>({...b,id:i+1,created_at:new Date().toISOString()}));
+  DB.saveBrands(brands);
+  localStorage.setItem('sk_nid_brand',6);
+
+  const products=[
+    {id:1,brand_id:1,name:'红腰子精华',category:'精华',unit:'瓶',specification:'30ml',min_stock:2,remarks:'肌底精华液',created_at:dt(),updated_at:dt()},
+    {id:2,brand_id:1,name:'安耐晒防晒',category:'防晒',unit:'瓶',specification:'60ml金瓶',min_stock:3,remarks:'2026新版',created_at:dt(),updated_at:dt()},
+    {id:3,brand_id:2,name:'神仙水',category:'水',unit:'瓶',specification:'230ml',min_stock:2,remarks:'经典版',created_at:dt(),updated_at:dt()},
+    {id:4,brand_id:2,name:'大红瓶面霜',category:'面霜',unit:'瓶',specification:'80g',min_stock:2,remarks:'',created_at:dt(),updated_at:dt()},
+    {id:5,brand_id:3,name:'小棕瓶眼霜',category:'眼霜',unit:'瓶',specification:'15ml',min_stock:2,remarks:'',created_at:dt(),updated_at:dt()},
+    {id:6,brand_id:3,name:'红石榴洁面',category:'洁面',unit:'支',specification:'125ml',min_stock:2,remarks:'',created_at:dt(),updated_at:dt()},
+    {id:7,brand_id:4,name:'金盏花爽肤水',category:'水',unit:'瓶',specification:'500ml',min_stock:3,remarks:'大瓶装',created_at:dt(),updated_at:dt()},
+    {id:8,brand_id:4,name:'清洁面膜',category:'面膜',unit:'盒',specification:'142g白泥',min_stock:1,remarks:'',created_at:dt(),updated_at:dt()},
+    {id:9,brand_id:5,name:'黑绷带面霜',category:'面霜',unit:'瓶',specification:'50ml',min_stock:2,remarks:'',created_at:dt(),updated_at:dt()},
+    {id:10,brand_id:6,name:'紫苏水',category:'水',unit:'瓶',specification:'150ml',min_stock:2,remarks:'限量版包装',created_at:dt(),updated_at:dt()},
+  ];
+  DB.saveProducts(products);
+  localStorage.setItem('sk_nid_prod',10);
+
+  const batches=[
+    {id:1,product_id:1,batch_no:'B2026-0310',production_date:'2026-01-15',expiration_date:'2027-06-15',quantity:3,purchase_date:'2026-03-10',remarks:'',created_at:dt()},
+    {id:2,product_id:1,batch_no:'B2026-0515',production_date:'2026-03-20',expiration_date:'2027-08-20',quantity:2,purchase_date:'2026-05-15',remarks:'',created_at:dt()},
+    {id:3,product_id:2,batch_no:'B2026-0615',production_date:'2026-04-01',expiration_date:'2027-05-01',quantity:8,purchase_date:'2026-06-15',remarks:'',created_at:dt()},
+    {id:4,product_id:3,batch_no:'B2026-0401',production_date:'2026-01-10',expiration_date:'2027-09-10',quantity:4,purchase_date:'2026-04-01',remarks:'',created_at:dt()},
+    {id:5,product_id:4,batch_no:'B2026-0120',production_date:'2025-12-05',expiration_date:'2027-04-30',quantity:2,purchase_date:'2026-01-20',remarks:'',created_at:dt()},
+    {id:6,product_id:5,batch_no:'B2026-0620',production_date:'2026-03-10',expiration_date:'2027-12-01',quantity:5,purchase_date:'2026-06-20',remarks:'',created_at:dt()},
+    {id:7,product_id:6,batch_no:'B2026-0425',production_date:'2026-02-15',expiration_date:'2027-07-01',quantity:3,purchase_date:'2026-04-25',remarks:'',created_at:dt()},
+    {id:8,product_id:7,batch_no:'B2026-0512',production_date:'2026-03-01',expiration_date:'2027-08-15',quantity:6,purchase_date:'2026-05-12',remarks:'',created_at:dt()},
+    {id:9,product_id:8,batch_no:'20250810',production_date:'2025-06-01',expiration_date:'2026-12-30',quantity:4,purchase_date:'2025-08-10',remarks:'',created_at:dt()},
+    {id:10,product_id:9,batch_no:'B2025-1115',production_date:'2025-09-01',expiration_date:'2027-03-20',quantity:1,purchase_date:'2025-11-15',remarks:'库存不足',created_at:dt()},
+    {id:11,product_id:10,batch_no:'B2026-0701',production_date:'2026-04-15',expiration_date:'2027-11-20',quantity:3,purchase_date:'2026-07-01',remarks:'',created_at:dt()},
+  ];
+  DB.saveBatches(batches);
+  localStorage.setItem('sk_nid_batch',11);
+  function dt(){return new Date().toISOString()}
+})();
+
+Pages.loadBrands();
+</script>
+</body>
+</html>
