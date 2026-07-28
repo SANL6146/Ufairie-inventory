@@ -52,6 +52,23 @@ body{
 .stats-n{display:block;font-size:18px;font-weight:700}
 .stats-l{display:block;font-size:10px;color:var(--t2);margin-top:1px}
 
+/* === 门店卡片 === */
+.store-list{padding:10px 14px}
+.store-card{background:var(--card);border-radius:var(--radius);padding:16px;margin:8px 0;box-shadow:var(--shadow);cursor:pointer;display:flex;align-items:center;gap:14px;transition:.15s;border-left:4px solid var(--primary)}
+.store-card:active{transform:scale(.98)}
+.store-avatar{width:48px;height:48px;border-radius:14px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.store-info{flex:1;min-width:0}
+.store-name{font-size:16px;font-weight:700}
+.store-meta{font-size:12px;color:var(--t2);margin-top:2px}
+.store-qty{text-align:center;min-width:40px}
+.store-qty-n{font-size:22px;font-weight:700;color:var(--primary);line-height:1.1}
+.store-qty-u{font-size:10px;color:var(--t2)}
+.store-arrow{color:var(--t3);font-size:16px}
+.store-card .store-tags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+.store-tag{font-size:10px;padding:1px 6px;border-radius:4px;font-weight:600}
+.store-tag.warn{background:#FFF3E0;color:var(--warning)}
+.store-tag.danger{background:#FFEBEE;color:var(--danger)}
+
 /* === 品牌卡片 === */
 .brand-list{padding:10px 14px}
 .brand-card{background:var(--card);border-radius:var(--radius);padding:16px;margin:8px 0;box-shadow:var(--shadow);cursor:pointer;display:flex;align-items:center;gap:14px;transition:.15s}
@@ -208,15 +225,21 @@ body{
 </header>
 
 <main class="main">
-  <!-- 品牌列表（首页） -->
-  <div id="v-brands" class="view active">
+  <!-- 门店列表（首页） -->
+  <div id="v-stores" class="view active">
     <div class="stats">
-      <div class="stats-i"><span class="stats-n" id="sBrands">--</span><span class="stats-l">品牌数</span></div>
+      <div class="stats-i"><span class="stats-n" id="sStores">--</span><span class="stats-l">门店数</span></div>
       <div class="stats-i"><span class="stats-n" id="sTotal">--</span><span class="stats-l">总产品</span></div>
       <div class="stats-i warn"><span class="stats-n" id="sLow">--</span><span class="stats-l">库存不足</span></div>
       <div class="stats-i danger"><span class="stats-n" id="sExpiry">--</span><span class="stats-l">临期批次</span></div>
     </div>
-    <div class="brand-list" id="brandList"><div class="empty">加载中…</div></div>
+    <div class="store-list" id="storeList"><div class="empty">加载中…</div></div>
+    <button class="fab" onclick="Pages.storeForm()">+</button>
+  </div>
+
+  <!-- 品牌列表（门店详情） -->
+  <div id="v-brands" class="view">
+    <div class="brand-list" id="brandList"><div class="empty">暂无品牌</div></div>
     <button class="fab" onclick="Pages.brandForm()">+</button>
   </div>
 
@@ -313,7 +336,12 @@ const DB = {
   _save(k,v){localStorage.setItem('sk_'+k,JSON.stringify(v));Sync.autoSync()},
   _nid(k){let n=(parseInt(localStorage.getItem('sk_nid_'+k))||0)+1;localStorage.setItem('sk_nid_'+k,n);return n},
 
-  brands(){return this._load('brands')},
+  stores(){return this._load('stores')},
+  saveStores(v){this._save('stores',v)},
+  brands(storeId){
+    const all=this._load('brands');
+    return storeId?all.filter(b=>b.store_id==storeId):all;
+  },
   saveBrands(v){this._save('brands',v)},
   products(brandId){return this._load('products').filter(p=>p.brand_id==brandId)},
   allProducts(){return this._load('products')},
@@ -336,6 +364,7 @@ const DB = {
     return (new Date(dateStr)-new Date())/86400000 <= 90;
   },
 
+  // 全局统计（所有门店汇总）
   stats(){
     const products=this.allProducts();
     const batches=this.allBatches();
@@ -350,7 +379,24 @@ const DB = {
     batches.forEach(b=>{
       if(b.expiration_date && (new Date(b.expiration_date)-now)/86400000<=90)nearExpiry++;
     });
-    return {brandCount:this.brands().length,total,lowStock,nearExpiry};
+    return {storeCount:this.stores().length,total,lowStock,nearExpiry,brandCount:this.brands().length};
+  },
+
+  // 门店维度统计
+  storeStats(storeId){
+    const storeBrands=this.brands(storeId);
+    const brandIds=new Set(storeBrands.map(b=>b.id));
+    const storeProducts=this.allProducts().filter(p=>brandIds.has(p.brand_id));
+    const prodIds=new Set(storeProducts.map(p=>p.id));
+    const storeBatches=this.allBatches().filter(b=>prodIds.has(b.product_id));
+    const now=new Date();
+
+    let totalQty=0;
+    storeProducts.forEach(p=>{totalQty+=this.productQty(p.id)});
+    let lowStock=storeProducts.filter(p=>this.productQty(p.id)<(p.min_stock||1)).length;
+    let nearExpiry=storeBatches.filter(b=>b.expiration_date&&(new Date(b.expiration_date)-now)/86400000<=90).length;
+
+    return {brandCount:storeBrands.length,productCount:storeProducts.length,totalQty,lowStock,nearExpiry};
   }
 };
 
@@ -426,6 +472,7 @@ const Sync = {
       }
       const j=await res.json();
       const data=JSON.parse(this._decodeBase64(j.content));
+      if(data.stores)localStorage.setItem('sk_stores',JSON.stringify(data.stores));
       if(data.brands)localStorage.setItem('sk_brands',JSON.stringify(data.brands));
       if(data.products)localStorage.setItem('sk_products',JSON.stringify(data.products));
       if(data.batches)localStorage.setItem('sk_batches',JSON.stringify(data.batches));
@@ -462,8 +509,8 @@ const Sync = {
       }catch{} // 文件可能不存在
 
       const data={
-        brands:DB.brands(),products:DB.allProducts(),batches:DB.allBatches(),txs:DB.txs(),
-        nids:{brand:localStorage.getItem('sk_nid_brand'),prod:localStorage.getItem('sk_nid_prod'),batch:localStorage.getItem('sk_nid_batch'),tx:localStorage.getItem('sk_nid_tx')},
+        stores:DB.stores(),brands:DB.brands(),products:DB.allProducts(),batches:DB.allBatches(),txs:DB.txs(),
+        nids:{store:localStorage.getItem('sk_nid_store'),brand:localStorage.getItem('sk_nid_brand'),prod:localStorage.getItem('sk_nid_prod'),batch:localStorage.getItem('sk_nid_batch'),tx:localStorage.getItem('sk_nid_tx')},
         synced_at:new Date().toISOString()
       };
       const content=await this._encodeBase64(JSON.stringify(data));
@@ -498,8 +545,9 @@ const Sync = {
 
 /* ==================== UI工具 ==================== */
 const UI = {
-  currentView:'brands',
+  currentView:'stores',
   viewStack:[],
+  currentStoreId:null,
   currentBrandId:null,
   currentProductId:null,
   _tempImage:null, // 编辑表单时暂存的图片base64
@@ -521,20 +569,26 @@ const UI = {
     document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
     document.getElementById('v-'+view).classList.add('active');
     this.currentView=view;
-    document.getElementById('btnBack').classList.toggle('hidden',view==='brands');
+    document.getElementById('btnBack').classList.toggle('hidden',view==='stores');
     window.scrollTo(0,0);
   },
   goBack(){
-    if(this.currentView==='brands')return;
-    if(this.currentView==='products'){
-      this.go('brands');Pages.loadBrands();
+    if(this.currentView==='stores')return;
+    if(this.currentView==='brands'){
+      this.go('stores');Pages.loadStores();
+    }else if(this.currentView==='products'){
+      if(this.currentStoreId)Pages.openStore(this.currentStoreId);
+      else{this.go('stores');Pages.loadStores();}
     }else if(this.currentView==='detail'){
-      this.go('products');Pages.loadProducts(this.currentBrandId);
+      if(this.currentBrandId)Pages.loadProducts(this.currentBrandId);
+      else if(this.currentStoreId)Pages.openStore(this.currentStoreId);
+      else{this.go('stores');Pages.loadStores();}
     }else if(this.currentView==='tx'){
       if(this.currentProductId)Pages.showDetail(this.currentProductId);
-      else{this.go('brands');Pages.loadBrands();}
+      else if(this.currentBrandId)Pages.loadProducts(this.currentBrandId);
+      else{this.go('stores');Pages.loadStores();}
     }else{
-      this.go('brands');Pages.loadBrands();
+      this.go('stores');Pages.loadStores();
     }
   },
 
@@ -590,16 +644,105 @@ const UI = {
 
 /* ==================== 页面逻辑 ==================== */
 const Pages = {
-  // === 品牌首页 ===
-  loadBrands(){
+  // === 门店首页 ===
+  loadStores(){
     document.getElementById('headerTitle').textContent='悠小仙产品库存';
-    const brands=DB.brands();
+    const stores=DB.stores();
     const stats=DB.stats();
-    document.getElementById('sBrands').textContent=stats.brandCount;
+    document.getElementById('sStores').textContent=stats.storeCount;
     document.getElementById('sTotal').textContent=stats.total;
     document.getElementById('sLow').textContent=stats.lowStock;
     document.getElementById('sExpiry').textContent=stats.nearExpiry;
 
+    const container=document.getElementById('storeList');
+    if(!stores.length){container.innerHTML='<div class="empty">暂无门店，点击右下角 + 添加</div>';return}
+
+    container.innerHTML=stores.map(s=>{
+      const ss=DB.storeStats(s.id);
+      let tags='';
+      if(ss.lowStock)tags+='<span class="store-tag warn">⚠️ '+ss.lowStock+'款不足</span>';
+      if(ss.nearExpiry)tags+='<span class="store-tag danger">📅 '+ss.nearExpiry+'批临期</span>';
+      return `<div class="store-card" onclick="Pages.openStore(${s.id})">
+        <div class="store-avatar">🏪</div>
+        <div class="store-info">
+          <div class="store-name">${UI.esc(s.name)}</div>
+          <div class="store-meta">${ss.brandCount}个品牌 · ${ss.productCount}款产品</div>
+          ${tags?`<div class="store-tags">${tags}</div>`:''}
+        </div>
+        <div class="store-qty">
+          <div class="store-qty-n">${ss.totalQty}</div>
+          <div class="store-qty-u">总库存</div>
+        </div>
+        ${Auth.isLocked()?'':`<div class="brand-actions" onclick="event.stopPropagation()" style="margin-left:4px">
+          <button class="btn-icon" onclick="Pages.storeForm(${s.id})" title="编辑">✏️</button>
+          <button class="btn-icon" onclick="Pages.deleteStore(${s.id})" title="删除">🗑️</button>
+        </div>`}
+        <div class="store-arrow">›</div>
+      </div>`;
+    }).join('');
+    UI.go('stores');
+  },
+
+  openStore(id){
+    UI.currentStoreId=id;
+    const store=DB.stores().find(s=>s.id==id);
+    document.getElementById('headerTitle').textContent=store?store.name:'品牌列表';
+    this._renderBrands(id);
+    UI.go('brands');
+  },
+
+  storeForm(editId){
+    const s=editId?DB.stores().find(x=>x.id==editId):null;
+    const cb=()=>UI.showModal(
+      s?'编辑门店':'新增门店',
+      `<form onsubmit="Pages.saveStore(event,${editId||0})">
+        <div class="fg"><label>门店名称 <span class="req">*</span></label>
+          <input type="text" id="sfName" required value="${UI.esc(s?s.name:'')}" placeholder="如：公司办公室"></div>
+        <div class="fa">
+          <button type="button" class="btn btn-s" onclick="UI.closeModal()">取消</button>
+          <button type="submit" class="btn btn-p">保存</button>
+        </div></form>`);
+    Auth.require(cb);
+  },
+
+  saveStore(e,editId){
+    e.preventDefault();
+    const name=document.getElementById('sfName').value.trim();
+    const stores=DB.stores();
+    if(editId){
+      const idx=stores.findIndex(s=>s.id==editId);
+      if(idx!==-1)stores[idx].name=name;
+    }else{
+      stores.push({id:DB._nid('store'),name,created_at:new Date().toISOString()});
+    }
+    DB.saveBrands(DB.brands()); // no-op to trigger save side-effect (sync)
+    DB.saveStores(stores);
+    UI.closeModal();
+    Pages.loadStores();
+    UI.toast(editId?'门店已更新':'门店已添加','success');
+  },
+
+  deleteStore(id){
+    if(!confirm('删除门店会同时删除其下所有品牌、产品、批次和记录，确定？'))return;
+    const cb=()=>{
+      const storeBrands=DB.brands(id);
+      const brandIds=storeBrands.map(b=>b.id);
+      const storeProducts=DB.allProducts().filter(p=>brandIds.includes(p.brand_id));
+      const prodIds=storeProducts.map(p=>p.id);
+      let products=DB.allProducts().filter(p=>!brandIds.includes(p.brand_id));
+      let batches=DB.allBatches().filter(b=>!prodIds.includes(b.product_id));
+      let txs=DB.txs().filter(t=>!prodIds.includes(t.product_id));
+      DB.saveProducts(products);DB.saveBatches(batches);DB.saveTxs(txs);
+      DB.saveBrands(DB.brands().filter(b=>!brandIds.includes(b.id)));
+      DB.saveStores(DB.stores().filter(s=>s.id!=id));
+      Pages.loadStores();UI.toast('门店已删除','success');
+    };
+    Auth.require(cb);
+  },
+
+  // === 品牌列表（门店内） ===
+  _renderBrands(storeId){
+    const brands=DB.brands(storeId);
     const container=document.getElementById('brandList');
     if(!brands.length){container.innerHTML='<div class="empty">暂无品牌，点击右下角 + 添加</div>';return}
 
@@ -620,7 +763,6 @@ const Pages = {
         <div class="brand-arrow">›</div>
       </div>`;
     }).join('');
-    UI.go('brands');
   },
 
   openBrand(id){
@@ -632,10 +774,14 @@ const Pages = {
 
   brandForm(editId){
     const b=editId?DB.brands().find(x=>x.id==editId):null;
+    const storeId=b?b.store_id:(UI.currentStoreId||'');
     UI._tempImage=b?b.image||null:null;
+    const storeOpts=DB.stores().map(s=>`<option value="${s.id}" ${s.id===storeId?'selected':''}>${UI.esc(s.name)}</option>`).join('');
     const cb=()=>UI.showModal(
       b?'编辑品牌':'新增品牌',
       `<form onsubmit="Pages.saveBrand(event,${editId||0})">
+        <div class="fg"><label>所属门店 <span class="req">*</span></label>
+          <select id="bfStoreId" required>${storeOpts}</select></div>
         <div class="fg"><label>品牌名称 <span class="req">*</span></label>
           <input type="text" id="bfName" required value="${UI.esc(b?b.name:'')}" placeholder="如：资生堂"></div>
         <div class="fg"><label>品牌图片</label>
@@ -650,17 +796,19 @@ const Pages = {
   saveBrand(e,editId){
     e.preventDefault();
     const name=document.getElementById('bfName').value.trim();
+    const storeId=parseInt(document.getElementById('bfStoreId').value);
     const image=UI._tempImage||'';
     const brands=DB.brands();
     if(editId){
       const idx=brands.findIndex(b=>b.id==editId);
-      if(idx!==-1){brands[idx].name=name;brands[idx].image=image;}
+      if(idx!==-1){brands[idx].name=name;brands[idx].store_id=storeId;brands[idx].image=image;}
     }else{
-      brands.push({id:DB._nid('brand'),name,image,created_at:new Date().toISOString()});
+      brands.push({id:DB._nid('brand'),store_id:storeId,name,image,created_at:new Date().toISOString()});
     }
     DB.saveBrands(brands);
     UI.closeModal();
-    Pages.loadBrands();
+    if(UI.currentView==='brands')Pages.openStore(UI.currentStoreId);
+    else Pages.loadStores();
     UI.toast(editId?'品牌已更新':'品牌已添加','success');
   },
 
@@ -673,7 +821,9 @@ const Pages = {
       let txs=DB.txs().filter(t=>!productIds.includes(t.product_id));
       DB.saveProducts(products);DB.saveBatches(batches);DB.saveTxs(txs);
       DB.saveBrands(DB.brands().filter(b=>b.id!=id));
-      Pages.loadBrands();UI.toast('品牌已删除','success');
+      if(UI.currentView==='brands')Pages.openStore(UI.currentStoreId);
+      else Pages.loadStores();
+      UI.toast('品牌已删除','success');
     };
     Auth.require(cb);
   },
@@ -821,7 +971,8 @@ const Pages = {
     UI.toast(`${type==='out'?'出':'入'}库 ${qty} ${UI.esc(p?p.unit:'件')}`,'success');
     if(UI.currentView==='detail')Pages.showDetail(productId);
     else Pages._renderProducts();
-    if(UI.currentView==='brands')Pages.loadBrands();
+    if(UI.currentView==='brands')Pages.openStore(UI.currentStoreId);
+    else if(UI.currentView==='stores')Pages.loadStores();
   },
 
   /* === 图片上传 === */
@@ -1130,7 +1281,7 @@ const Settings = {
 
   exportData(){
     const data={
-      brands:DB.brands(),products:DB.allProducts(),batches:DB.allBatches(),txs:DB.txs(),
+      stores:DB.stores(),brands:DB.brands(),products:DB.allProducts(),batches:DB.allBatches(),txs:DB.txs(),
       exported_at:new Date().toISOString()
     };
     const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
@@ -1146,9 +1297,10 @@ const Settings = {
     reader.onload=e=>{
       try{
         const data=JSON.parse(e.target.result);
-        if(!data.brands||!data.products||!data.batches||!data.txs){
+        if(!data.stores||!data.brands||!data.products||!data.batches||!data.txs){
           UI.toast('文件格式不正确，缺少必要数据','error');return;
         }
+        localStorage.setItem('sk_stores',JSON.stringify(data.stores));
         localStorage.setItem('sk_brands',JSON.stringify(data.brands));
         localStorage.setItem('sk_products',JSON.stringify(data.products));
         localStorage.setItem('sk_batches',JSON.stringify(data.batches));
@@ -1167,7 +1319,7 @@ const Settings = {
   reset(){
     if(!confirm('⚠️ 确定重置所有数据？此操作不可恢复！\n\n建议先导出备份。'))return;
     if(confirm('再次确认：删除所有品牌、产品、批次和记录？')){
-      ['brands','products','batches','txs'].forEach(k=>localStorage.removeItem('sk_'+k));
+      ['stores','brands','products','batches','txs'].forEach(k=>localStorage.removeItem('sk_'+k));
       location.reload();
     }
   },
@@ -1230,26 +1382,58 @@ const Settings = {
 document.getElementById('btnBack').onclick=()=>UI.goBack();
 document.getElementById('modalOverlay').onclick=e=>{if(e.target===document.getElementById('modalOverlay'))UI.closeModal()};
 
-// 插入示例数据（首次使用），优先从云端拉取
-(async function initDemo(){
-  // 如果本地已有数据，跳过
-  if(DB.brands().length>0)return;
+// 数据迁移和初始化
+(async function initApp(){
+  // 数据迁移：旧数据没有门店层，自动创建门店并分配品牌
+  const stores=DB.stores();
+  const brands=DB.brands();
+  if(!stores.length){
+    // 创建默认门店
+    const defaultStores=[
+      {id:1,name:'公司办公室',created_at:dt()},
+      {id:2,name:'保利店',created_at:dt()},
+      {id:3,name:'圣湖店',created_at:dt()},
+    ];
+    DB.saveStores(defaultStores);
+    localStorage.setItem('sk_nid_store','3');
 
-  // 如果配置了云端同步，先尝试从云端拉取
+    // 已有品牌但没有 store_id，分配给"公司办公室"
+    if(brands.length>0 && !brands[0].hasOwnProperty('store_id')){
+      const updatedBrands=brands.map(b=>({...b,store_id:1}));
+      DB.saveBrands(updatedBrands);
+    }
+  }
+
+  // 如果已有门店且有品牌，检查是否需要从云端拉取
+  if(DB.stores().length>0 && DB.brands().length>0){
+    // 数据已存在（含迁移后），检查云端同步
+    if(Sync.isEnabled()){
+      await Sync.pull(true);
+      if(DB.stores().length>0){
+        Pages.loadStores();
+        return;
+      }
+    }
+    Pages.loadStores();
+    return;
+  }
+
+  // 完全空的新用户——尝试云端拉取
   if(Sync.isEnabled()){
     const ok=await Sync.pull(true);
-    if(ok && DB.brands().length>0){
-      location.reload(); // 云端有数据，刷新加载
+    if(ok && DB.stores().length>0 && DB.brands().length>0){
+      location.reload();
       return;
     }
   }
 
-  const brands=[
-    {id:1,name:'资生堂'},{id:2,name:'SK-II'},{id:3,name:'雅诗兰黛'},
-    {id:4,name:'科颜氏'},{id:5,name:'赫莲娜'},{id:6,name:'黛珂'}
-  ].map((b,i)=>({...b,id:i+1,created_at:new Date().toISOString()}));
-  DB.saveBrands(brands);
-  localStorage.setItem('sk_nid_brand',6);
+  // 插入示例数据
+  const demoBrands=[
+    {id:1,store_id:1,name:'资生堂'},{id:2,store_id:1,name:'SK-II'},{id:3,store_id:1,name:'雅诗兰黛'},
+    {id:4,store_id:1,name:'科颜氏'},{id:5,store_id:2,name:'赫莲娜'},{id:6,store_id:2,name:'黛珂'}
+  ].map((b,i)=>({...b,id:i+1,created_at:dt()}));
+  DB.saveBrands(demoBrands);
+  localStorage.setItem('sk_nid_brand','6');
 
   const products=[
     {id:1,brand_id:1,name:'红腰子精华',category:'精华',unit:'瓶',specification:'30ml',min_stock:2,remarks:'肌底精华液',created_at:dt(),updated_at:dt()},
@@ -1264,7 +1448,7 @@ document.getElementById('modalOverlay').onclick=e=>{if(e.target===document.getEl
     {id:10,brand_id:6,name:'紫苏水',category:'水',unit:'瓶',specification:'150ml',min_stock:2,remarks:'限量版包装',created_at:dt(),updated_at:dt()},
   ];
   DB.saveProducts(products);
-  localStorage.setItem('sk_nid_prod',10);
+  localStorage.setItem('sk_nid_prod','10');
 
   const batches=[
     {id:1,product_id:1,batch_no:'B2026-0310',production_date:'2026-01-15',expiration_date:'2027-06-15',quantity:3,purchase_date:'2026-03-10',remarks:'',created_at:dt()},
@@ -1280,11 +1464,11 @@ document.getElementById('modalOverlay').onclick=e=>{if(e.target===document.getEl
     {id:11,product_id:10,batch_no:'B2026-0701',production_date:'2026-04-15',expiration_date:'2027-11-20',quantity:3,purchase_date:'2026-07-01',remarks:'',created_at:dt()},
   ];
   DB.saveBatches(batches);
-  localStorage.setItem('sk_nid_batch',11);
+  localStorage.setItem('sk_nid_batch','11');
   function dt(){return new Date().toISOString()}
-})();
 
-Pages.loadBrands();
+  Pages.loadStores();
+})();
 </script>
 </body>
 </html>
