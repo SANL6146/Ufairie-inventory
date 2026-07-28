@@ -182,6 +182,8 @@ body{
 .set-card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}
 .set-card h3{font-size:15px;margin-bottom:10px}
 .set-card .fg{margin-bottom:10px}
+.set-card .set-hint{font-size:10px;color:var(--t2);display:block;margin-top:4px}
+.set-card .set-toggle{font-size:13px;color:var(--t1);cursor:pointer}
 
 @keyframes fIn{from{opacity:0}to{opacity:1}}
 @keyframes sUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
@@ -267,6 +269,24 @@ body{
         <p id="setMsg" style="font-size:11px;color:var(--t2);margin-top:8px"></p>
       </div>
       <div class="set-card">
+        <h3>☁️ 云端同步</h3>
+        <p style="font-size:12px;color:var(--t2);margin-bottom:8px">通过 GitHub 自动同步数据，多设备共享同一份库存</p>
+        <div class="fg">
+          <label>GitHub Personal Access Token</label>
+          <input type="password" id="setGhToken" placeholder="github_pat_...">
+          <span class="set-hint">需要 repo 权限。生成路径: GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)</span>
+        </div>
+        <label class="set-toggle" style="display:flex;align-items:center;gap:8px;margin:10px 0;cursor:pointer">
+          <input type="checkbox" id="setAutoSync" checked onchange="Settings.saveSync()"> 自动同步（修改后自动推送到云端）
+        </label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-s btn-b" onclick="Settings.saveSync()">💾 保存配置</button>
+          <button class="btn btn-s btn-b" onclick="Settings.pullNow()" id="btnPull">⬇️ 从云端拉取</button>
+          <button class="btn btn-s btn-b" onclick="Settings.pushNow()" id="btnPush">⬆️ 推送到云端</button>
+        </div>
+        <p id="syncMsg" style="font-size:11px;color:var(--t2);margin-top:8px"></p>
+      </div>
+      <div class="set-card">
         <h3>📊 数据管理</h3>
         <button class="btn btn-s btn-b" style="margin-bottom:8px" onclick="Settings.exportData()">导出全部数据 (JSON)</button>
         <button class="btn btn-s btn-b" style="margin-bottom:8px" onclick="document.getElementById('importFileInput').click()">导入数据 (JSON)</button>
@@ -288,7 +308,7 @@ body{
 /* ==================== 数据层 ==================== */
 const DB = {
   _load(k){try{return JSON.parse(localStorage.getItem('sk_'+k))||[]}catch{return[]}},
-  _save(k,v){localStorage.setItem('sk_'+k,JSON.stringify(v))},
+  _save(k,v){localStorage.setItem('sk_'+k,JSON.stringify(v));Sync.autoSync()},
   _nid(k){let n=(parseInt(localStorage.getItem('sk_nid_'+k))||0)+1;localStorage.setItem('sk_nid_'+k,n);return n},
 
   brands(){return this._load('brands')},
@@ -371,6 +391,89 @@ const Auth = {
     });
   },
   isLocked(){return this.hasPassword() && !this.isAdmin}
+};
+
+/* ==================== GitHub 云同步 ==================== */
+const Sync = {
+  REPO:'SANL6146/Ufairie-inventory',
+  PATH:'data.json',
+
+  isEnabled(){return !!localStorage.getItem('sk_gh_token')},
+  getToken(){return localStorage.getItem('sk_gh_token')||''},
+  setToken(t){localStorage.setItem('sk_gh_token',t)},
+  isAutoSync(){return localStorage.getItem('sk_gh_auto')!=='0'},
+  setAutoSync(v){localStorage.setItem('sk_gh_auto',v?'1':'0')},
+
+  async pull(silent){
+    const token=this.getToken();
+    if(!token)return false;
+    try{
+      const res=await fetch(`https://api.github.com/repos/${this.REPO}/contents/${this.PATH}`,{
+        headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github.v3+json'}
+      });
+      if(!res.ok){
+        if(res.status===404){if(!silent)UI.toast('云端暂无数据','info');return false}
+        throw new Error(`GitHub API: ${res.status}`);
+      }
+      const j=await res.json();
+      const data=JSON.parse(atob(j.content));
+      if(data.brands)localStorage.setItem('sk_brands',JSON.stringify(data.brands));
+      if(data.products)localStorage.setItem('sk_products',JSON.stringify(data.products));
+      if(data.batches)localStorage.setItem('sk_batches',JSON.stringify(data.batches));
+      if(data.txs)localStorage.setItem('sk_txs',JSON.stringify(data.txs));
+      if(data.nids){
+        Object.entries(data.nids).forEach(([k,v])=>localStorage.setItem('sk_nid_'+k,v));
+      }
+      if(!silent)UI.toast('已从云端同步最新数据','success');
+      return true;
+    }catch(e){
+      if(!silent){UI.toast('云端同步失败: '+e.message,'error');console.error(e)}
+      return false;
+    }
+  },
+
+  async push(silent){
+    const token=this.getToken();
+    if(!token)return false;
+    try{
+      // 先获取当前文件的 sha
+      let sha=null;
+      try{
+        const getRes=await fetch(`https://api.github.com/repos/${this.REPO}/contents/${this.PATH}`,{
+          headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github.v3+json'}
+        });
+        if(getRes.ok){const j=await getRes.json();sha=j.sha}
+      }catch{} // 文件可能不存在
+
+      const data={
+        brands:DB.brands(),products:DB.allProducts(),batches:DB.allBatches(),txs:DB.txs(),
+        nids:{brand:localStorage.getItem('sk_nid_brand'),prod:localStorage.getItem('sk_nid_prod'),batch:localStorage.getItem('sk_nid_batch'),tx:localStorage.getItem('sk_nid_tx')},
+        synced_at:new Date().toISOString()
+      };
+      const content=btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+      const body={message:'自动同步',content};
+      if(sha)body.sha=sha;
+
+      const res=await fetch(`https://api.github.com/repos/${this.REPO}/contents/${this.PATH}`,{
+        method:'PUT',
+        headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github.v3+json','Content-Type':'application/json'},
+        body:JSON.stringify(body)
+      });
+      if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.message||res.status)}
+      if(!silent)UI.toast('已同步到云端','success');
+      return true;
+    }catch(e){
+      if(!silent){UI.toast('同步失败: '+e.message,'error');console.error(e)}
+      return false;
+    }
+  },
+
+  _debounce:null,
+  autoSync(){
+    if(!this.isEnabled()||!this.isAutoSync())return;
+    clearTimeout(this._debounce);
+    this._debounce=setTimeout(()=>this.push(true),2000);
+  }
 };
 
 /* ==================== UI工具 ==================== */
@@ -984,6 +1087,7 @@ const Pages = {
     if(Auth.hasPassword()){
       document.getElementById('setPwOldGrp').style.display='block';
     }
+    Settings.initSync();
     UI.go('settings');
   },
 };
@@ -1046,6 +1150,37 @@ const Settings = {
       ['brands','products','batches','txs'].forEach(k=>localStorage.removeItem('sk_'+k));
       location.reload();
     }
+  },
+
+  // === 云端同步 ===
+  initSync(){
+    const token=Sync.getToken();
+    if(token)document.getElementById('setGhToken').value=token;
+    document.getElementById('setAutoSync').checked=Sync.isAutoSync();
+  },
+  saveSync(){
+    const token=document.getElementById('setGhToken').value.trim();
+    Sync.setToken(token);
+    Sync.setAutoSync(document.getElementById('setAutoSync').checked);
+    document.getElementById('syncMsg').textContent=token?'配置已保存 ✅':'配置已保存';
+    setTimeout(()=>{document.getElementById('syncMsg').textContent=''},2000);
+  },
+  async pullNow(){
+    if(!Sync.getToken()){UI.toast('请先配置 Token','error');return}
+    document.getElementById('syncMsg').textContent='正在从云端拉取…';
+    const ok=await Sync.pull(true);
+    if(ok){
+      document.getElementById('syncMsg').textContent='拉取成功，页面即将刷新';
+      setTimeout(()=>location.reload(),800);
+    }else{
+      document.getElementById('syncMsg').textContent='拉取失败，请检查Token和网络';
+    }
+  },
+  async pushNow(){
+    if(!Sync.getToken()){UI.toast('请先配置 Token','error');return}
+    document.getElementById('syncMsg').textContent='正在推送到云端…';
+    const ok=await Sync.push(true);
+    document.getElementById('syncMsg').textContent=ok?'推送成功 ✅':'推送失败，请检查Token和网络';
   }
 };
 
@@ -1053,9 +1188,20 @@ const Settings = {
 document.getElementById('btnBack').onclick=()=>UI.goBack();
 document.getElementById('modalOverlay').onclick=e=>{if(e.target===document.getElementById('modalOverlay'))UI.closeModal()};
 
-// 插入示例数据（首次使用）
-(function initDemo(){
+// 插入示例数据（首次使用），优先从云端拉取
+(async function initDemo(){
+  // 如果本地已有数据，跳过
   if(DB.brands().length>0)return;
+
+  // 如果配置了云端同步，先尝试从云端拉取
+  if(Sync.isEnabled()){
+    const ok=await Sync.pull(true);
+    if(ok && DB.brands().length>0){
+      location.reload(); // 云端有数据，刷新加载
+      return;
+    }
+  }
+
   const brands=[
     {id:1,name:'资生堂'},{id:2,name:'SK-II'},{id:3,name:'雅诗兰黛'},
     {id:4,name:'科颜氏'},{id:5,name:'赫莲娜'},{id:6,name:'黛珂'}
