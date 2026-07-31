@@ -645,6 +645,8 @@ const UI = {
     }else if(this.currentView==='detail'){
       if(this.currentStoreId){
         Pages.openStore(this.currentStoreId);
+      }else if(this.currentBrandId){
+        Pages.openCatalogBrand(this.currentBrandId);
       }else{
         this.go('stores');Pages.loadHome();
       }
