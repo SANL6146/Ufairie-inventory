@@ -619,14 +619,20 @@ const UI = {
   },
 
   showModal(title,html){
+    this._scrollY=window.scrollY;
+    document.body.style.position='fixed';
+    document.body.style.top=`-${this._scrollY}px`;
+    document.body.style.width='100%';
     document.getElementById('modalTitle').textContent=title;
     document.getElementById('modalBody').innerHTML=html;
     document.getElementById('modalOverlay').classList.remove('hidden');
-    document.body.style.overflow='hidden';
   },
   closeModal(){
     document.getElementById('modalOverlay').classList.add('hidden');
-    document.body.style.overflow='';
+    document.body.style.position='';
+    document.body.style.top='';
+    document.body.style.width='';
+    window.scrollTo(0,this._scrollY||0);
   },
 
   go(view){
@@ -1108,9 +1114,9 @@ const Pages = {
          <div class="fg"><label>保质期</label><input type="date" id="txExpDate"></div>`}
         <div class="fg"><label>数量</label>
           <div style="display:flex;align-items:center;gap:14px;justify-content:center">
-            <button type="button" class="d-qty-btn" onclick="let e=document.getElementById('txQty');e.value=Math.max(1,parseInt(e.value||1)-1)">−</button>
-            <input type="number" id="txQty" value="1" min="1" style="width:60px;text-align:center;font-size:20px;font-weight:700;border:none;background:var(--bg);border-radius:8px;padding:6px">
-            <button type="button" class="d-qty-btn" onclick="let e=document.getElementById('txQty');e.value=parseInt(e.value||1)+1">+</button>
+            <button type="button" class="d-qty-btn" onclick="let e=document.getElementById('txQty');e.value=Math.max(1,parseInt(e.value||1)-1);return false">−</button>
+            <input type="number" id="txQty" value="1" min="1" inputmode="none" readonly style="width:60px;text-align:center;font-size:20px;font-weight:700;border:none;background:var(--bg);border-radius:8px;padding:6px;pointer-events:none">
+            <button type="button" class="d-qty-btn" onclick="let e=document.getElementById('txQty');e.value=parseInt(e.value||1)+1;return false">+</button>
           </div></div>
         <div class="fg"><label>备注</label><input type="text" id="txRemarks" placeholder="选填"></div>
         <button class="btn btn-p btn-b" onclick="Pages.confirmStoreTx(${productId},'${type}',${storeId})">确认${type==='out'?'出库':'入库'}</button>`
@@ -1420,9 +1426,9 @@ const Pages = {
           <div class="d-name">${UI.esc(p.name)}</div>
           <div class="d-brand">${UI.esc(brand?brand.name:'')} · ${UI.esc(p.category)}${p.specification?' · '+UI.esc(p.specification):''}</div>
           <div class="d-qty-wrap">
-            <button class="d-qty-btn" onclick="Pages.storeQuickTx(${p.id},'out')">−</button>
+            <button class="d-qty-btn" onclick="Pages.storeQuickTx(${p.id},'out');return false">−</button>
             <div class="d-qty-val ${qc}">${qty}</div>
-            <button class="d-qty-btn" onclick="Pages.storeQuickTx(${p.id},'in')">+</button>
+            <button class="d-qty-btn" onclick="Pages.storeQuickTx(${p.id},'in');return false">+</button>
           </div>
           <div style="font-size:12px;color:var(--t2)">${UI.esc(p.unit)}${qty<=(p.min_stock||1)?' ⚠️库存不足':''}</div>
         </div>
