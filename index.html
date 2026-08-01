@@ -626,6 +626,17 @@ const UI = {
     document.getElementById('modalTitle').textContent=title;
     document.getElementById('modalBody').innerHTML=html;
     document.getElementById('modalOverlay').classList.remove('hidden');
+    // iOS键盘弹出时自动滚动输入框到可见区域
+    const modal=document.getElementById('modal');
+    const focusFn=e=>{
+      const t=e.target.tagName;
+      if(t==='INPUT'||t==='TEXTAREA'||t==='SELECT'){
+        setTimeout(()=>{e.target.scrollIntoView({behavior:'smooth',block:'center'})},380);
+      }
+    };
+    if(this._modalFocusFn)modal.removeEventListener('focusin',this._modalFocusFn);
+    modal.addEventListener('focusin',focusFn);
+    this._modalFocusFn=focusFn;
   },
   closeModal(){
     document.getElementById('modalOverlay').classList.add('hidden');
@@ -633,6 +644,10 @@ const UI = {
     document.body.style.top='';
     document.body.style.width='';
     window.scrollTo(0,this._scrollY||0);
+    if(this._modalFocusFn){
+      document.getElementById('modal').removeEventListener('focusin',this._modalFocusFn);
+      this._modalFocusFn=null;
+    }
   },
 
   go(view){
