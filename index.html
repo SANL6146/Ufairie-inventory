@@ -445,7 +445,7 @@ const DB = {
     let nearExpiry=0;
     products.forEach(p=>{
       const qty=this.productQty(p.id);
-      if(qty<(p.min_stock||1))lowStock++;
+      if(qty<=(p.min_stock||1))lowStock++;
     });
     batches.forEach(b=>{
       if(b.expiration_date&&(new Date(b.expiration_date)-now)/86400000<=90)nearExpiry++;
@@ -461,7 +461,7 @@ const DB = {
     const now=new Date();
     let totalQty=0;
     prods.forEach(p=>{totalQty+=this.storeProductQty(p.id,storeId)});
-    let lowStock=prods.filter(p=>this.storeProductQty(p.id,storeId)<(p.min_stock||1)).length;
+    let lowStock=prods.filter(p=>this.storeProductQty(p.id,storeId)<=(p.min_stock||1)).length;
     let nearExpiry=bats.filter(b=>b.expiration_date&&(new Date(b.expiration_date)-now)/86400000<=90).length;
     // 按品牌分组
     const brandIds=[...new Set(prods.map(p=>p.brand_id))];
