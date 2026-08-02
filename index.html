@@ -131,33 +131,22 @@ body{
 
 /* === 产品卡片 === */
 .prod-list{padding:0 14px}
-#catProdList{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px 14px}
-.store-prod-group{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
-.store-prod-group-title{grid-column:1/-1;font-size:12px;font-weight:600;color:var(--t2);padding:6px 0}
-.prod-card{background:var(--card);border-radius:var(--radius);cursor:pointer;transition:all .15s;border:1px solid var(--border);box-shadow:0 1px 2px rgba(0,0,0,.03);overflow:hidden}
+#catProdList{display:flex;flex-direction:column;gap:8px;padding:10px 14px}
+.store-prod-group{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.store-prod-group-title{font-size:12px;font-weight:600;color:var(--t2);padding:6px 0}
+.prod-card{background:var(--card);border-radius:var(--radius);cursor:pointer;transition:all .15s;border:1px solid var(--border);box-shadow:0 1px 2px rgba(0,0,0,.03);overflow:hidden;display:flex;align-items:center;gap:10px;padding:12px 14px}
 .prod-card:active{transform:scale(.98)}
-.prod-card-inner{display:flex;flex-direction:column;align-items:center;gap:6px;padding:18px 12px 14px;position:relative}
-.prod-card-inner::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:3px 3px 0 0;background:var(--primary-soft)}
-.pa-精华 .prod-card-inner::before{background:#E8DEF5}
-.pa-面霜 .prod-card-inner::before{background:#F5E6D3}
-.pa-眼霜 .prod-card-inner::before{background:#D5E8D3}
-.pa-水 .prod-card-inner::before{background:#D3E0F5}
-.pa-乳液 .prod-card-inner::before{background:#F5D3E8}
-.pa-洁面 .prod-card-inner::before{background:#D3F0F5}
-.pa-面膜 .prod-card-inner::before{background:#E0D5F5}
-.pa-防晒 .prod-card-inner::before{background:#F5F0D3}
-.pa-其他 .prod-card-inner::before{background:#E8E3DB}
 .prod-thumb{width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;overflow:hidden;object-fit:cover}
-.prod-info{flex:1;min-width:0;text-align:center;width:100%}
-.prod-name{font-size:13px;font-weight:600;text-align:center}
-.prod-meta{font-size:11px;color:var(--t2);margin-top:1px;text-align:center}
-.prod-expiry{font-size:11px;color:var(--danger);margin-top:1px;text-align:center}
+.prod-info{flex:1;min-width:0}
+.prod-name{font-size:14px;font-weight:600}
+.prod-meta{font-size:11px;color:var(--t2);margin-top:1px}
+.prod-expiry{font-size:11px;color:var(--danger);margin-top:1px}
 .prod-expiry.ok{color:var(--t3)}
 .prod-qty{text-align:center;min-width:40px}
 .prod-qty-n{font-size:18px;font-weight:800;line-height:1.2}
 .prod-qty-n.low{color:var(--warning)}.prod-qty-n.normal{color:var(--primary-dark)}
 .prod-qty-u{font-size:10px;color:var(--t2)}
-.prod-acts{display:flex;gap:4px;margin-top:4px;justify-content:center;flex-wrap:wrap}
+.prod-acts{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
 .prod-acts .btn{font-size:11px;padding:4px 8px}
 
 /* === 图片上传 === */
