@@ -864,6 +864,7 @@ const Pages = {
   updateFab(){
     const fab=document.getElementById('fabHome');
     if(!fab||fab.classList.contains('hidden'))return;
+    const wasLocked=fab.textContent==='🔒';
     if(Auth.isLocked()){
       fab.textContent='🔒';
       fab.onclick=()=>this.unlockFab();
@@ -871,6 +872,7 @@ const Pages = {
       fab.textContent='+';
       fab.onclick=()=>this.storeForm();
     }
+    if(wasLocked&&!Auth.isLocked())this.loadHome();
   },
 
   unlockFab(){
