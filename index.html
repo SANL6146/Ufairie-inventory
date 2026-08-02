@@ -1648,6 +1648,7 @@ const Pages = {
     document.querySelector(`.tab-item[data-tab="${tab}"]`).classList.add('active');
     document.getElementById('homePanel').classList.toggle('active',tab==='home');
     document.getElementById('recordsPanel').classList.toggle('active',tab==='records');
+    document.getElementById('fabHome').classList.toggle('hidden',tab!=='home');
     document.getElementById('headerTitle').textContent=tab==='home'?'':'操作记录';
     window.scrollTo(0,0);
   },
