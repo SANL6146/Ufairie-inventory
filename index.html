@@ -85,9 +85,11 @@ body{
 .quick-entry::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:3px 3px 0 0}
 .quick-entry.qe-catalog::after{background:linear-gradient(90deg,var(--primary),#7BA0B8)}
 .quick-entry.qe-dashboard::after{background:linear-gradient(90deg,var(--accent),#E8A88A)}
+.quick-entry.qe-settings::after{background:linear-gradient(90deg,#8A9AA8,#A8B5C0)}
 .qe-icon-wrap{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .qe-icon-wrap.qe-catalog{background:var(--primary-soft)}
 .qe-icon-wrap.qe-dashboard{background:var(--accent-soft)}
+.qe-icon-wrap.qe-settings{background:#F0F2F5}
 .qe-icon{font-size:22px}
 .qe-body{flex:1}
 .qe-title{font-size:15px;font-weight:700;color:var(--text)}
@@ -297,9 +299,7 @@ body{
     <button class="btn-back hidden" id="btnBack">←</button>
   </div>
   <h1 class="header-t" id="headerTitle"></h1>
-  <div class="header-r">
-    <button class="btn-icon" onclick="Pages.settings()" title="设置">⚙️</button>
-  </div>
+  <div class="header-r"></div>
 </header>
 
 <main class="main">
@@ -348,6 +348,18 @@ body{
           <div class="qe-body">
             <div class="qe-title">数据看板</div>
             <div class="qe-sub">库存价值分析</div>
+          </div>
+        </div>
+        <div class="quick-entry qe-settings" onclick="Pages.settings()">
+          <div class="qe-icon-wrap qe-settings">
+            <svg class="qe-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5B7B95" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </div>
+          <div class="qe-body">
+            <div class="qe-title">设置</div>
+            <div class="qe-sub">系统与权限</div>
           </div>
         </div>
       </div>
@@ -737,6 +749,7 @@ const UI = {
     this.currentView=view;
     document.getElementById('btnBack').classList.toggle('hidden',view==='stores');
     document.getElementById('fabHome').classList.toggle('hidden',view!=='stores');
+    document.querySelector('.header').classList.toggle('hidden',view==='stores');
     window.scrollTo(0,0);
   },
 
@@ -799,6 +812,7 @@ const Pages = {
   // === 首页 ===
   loadHome(){
     document.getElementById('headerTitle').textContent='';
+    document.querySelector('.header').classList.add('hidden');
     const stats=DB.stats();
     document.getElementById('sBrands').textContent=stats.brandCount;
     document.getElementById('sTotal').textContent=stats.total;
