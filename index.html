@@ -361,7 +361,7 @@ body{
       <div class="tx-list" id="txListAll"><div class="empty">加载中…</div></div>
     </div>
 
-    <button class="fab hidden" id="fabHome" onclick="Pages.storeForm()">+</button>
+    <button class="fab hidden" id="fabHome">+</button>
   </div>
 
   <!-- 产品目录 → 品牌列表 -->
@@ -430,6 +430,23 @@ body{
           <button class="btn btn-s btn-b" onclick="Settings.pushNow()" id="btnPush">⬆️ 推送到云端</button>
         </div>
         <p id="syncMsg" style="font-size:11px;color:var(--t2);margin-top:8px"></p>
+      </div>
+      <div class="set-card">
+        <h3>🔐 管理员密码</h3>
+        <p style="font-size:12px;color:var(--t2);margin-bottom:8px">设置后，首页右下角会出现锁图标，需要密码才能编辑数据。不设置则所有人可编辑。</p>
+        <div class="fg">
+          <label>新密码</label>
+          <input type="password" id="setPw" placeholder="留空则不设置密码">
+        </div>
+        <div class="fg">
+          <label>确认密码</label>
+          <input type="password" id="setPw2" placeholder="再次输入确认">
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-p btn-b" onclick="Settings.savePassword()">💾 保存密码</button>
+          <button class="btn btn-d btn-b" onclick="Settings.clearPassword()" id="btnClearPw" style="display:none">🗑️ 清除密码</button>
+        </div>
+        <p id="pwMsg" style="font-size:11px;color:var(--t2);margin-top:8px"></p>
       </div>
       <div class="set-card">
         <h3>📊 数据管理</h3>
@@ -581,8 +598,11 @@ const Auth = {
     localStorage.setItem('sk_pw',btoa(pw));
   },
   check(pw){return btoa(pw)===localStorage.getItem('sk_pw')},
-  require(callback){callback();},
-  isLocked(){return false}
+  require(callback){
+    if(!this.isLocked()){callback();return}
+    UI.showPassword('需要管理员密码才能操作',ok=>{if(ok)callback()});
+  },
+  isLocked(){return !!localStorage.getItem('sk_pw')&&!Auth.isAdmin}
 };
 
 /* ==================== GitHub 云同步 ==================== */
@@ -835,6 +855,29 @@ const Pages = {
     }
     UI.go('stores');
     this.switchTab('home');
+    this.updateFab();
+  },
+
+  updateFab(){
+    const fab=document.getElementById('fabHome');
+    if(!fab||fab.classList.contains('hidden'))return;
+    if(Auth.isLocked()){
+      fab.textContent='🔒';
+      fab.onclick=()=>this.unlockFab();
+    }else{
+      fab.textContent='+';
+      fab.onclick=()=>this.storeForm();
+    }
+  },
+
+  unlockFab(){
+    if(!Auth.hasPassword()){
+      UI.toast('请先在设置中设置管理员密码','warn');
+      return;
+    }
+    UI.showPassword('需要管理员密码才能操作',ok=>{
+      if(ok)this.updateFab();
+    });
   },
 
   openDashboard(){
@@ -1654,6 +1697,7 @@ const Pages = {
     document.getElementById('fabHome').classList.toggle('hidden',tab!=='home');
     document.getElementById('headerTitle').textContent=tab==='home'?'':'操作记录';
     window.scrollTo(0,0);
+    if(tab==='home')this.updateFab();
   },
 
   // === 操作记录（单产品） ===
@@ -1679,6 +1723,7 @@ const Pages = {
   settings(){
     document.getElementById('headerTitle').textContent='⚙️ 设置';
     Settings.initSync();
+    Settings.initPassword();
     UI.go('settings');
   },
 };
@@ -1754,6 +1799,35 @@ const Settings = {
       else if(res.status===403){document.getElementById('syncMsg').textContent='Token 权限不足 ❌ — 需勾选 repo 权限';}
       else{document.getElementById('syncMsg').textContent='连接失败 HTTP '+res.status;}
     }catch(e){document.getElementById('syncMsg').textContent='网络错误 — 无法访问 GitHub API';}
+  },
+  initPassword(){
+    const hasPw=Auth.hasPassword();
+    document.getElementById('btnClearPw').style.display=hasPw?'':'none';
+    document.getElementById('pwMsg').textContent=hasPw?'✅ 已设置管理员密码':'';
+    document.getElementById('setPw').value='';
+    document.getElementById('setPw2').value='';
+  },
+  savePassword(){
+    const pw=document.getElementById('setPw').value;
+    const pw2=document.getElementById('setPw2').value;
+    if(!pw){Auth.setPassword('');document.getElementById('pwMsg').textContent='密码已清除';document.getElementById('btnClearPw').style.display='none';Auth.isAdmin=false;Pages.updateFab();return}
+    if(pw!==pw2){document.getElementById('pwMsg').textContent='❌ 两次密码不一致';return}
+    if(pw.length<2){document.getElementById('pwMsg').textContent='❌ 密码至少2位';return}
+    Auth.setPassword(pw);
+    document.getElementById('pwMsg').textContent='✅ 密码已设置';
+    document.getElementById('btnClearPw').style.display='';
+    document.getElementById('setPw').value='';
+    document.getElementById('setPw2').value='';
+    Auth.isAdmin=true;
+    Pages.updateFab();
+  },
+  clearPassword(){
+    if(!confirm('确定清除管理员密码？清除后所有人可编辑数据。'))return;
+    Auth.setPassword('');
+    Auth.isAdmin=false;
+    document.getElementById('pwMsg').textContent='密码已清除';
+    document.getElementById('btnClearPw').style.display='none';
+    Pages.updateFab();
   }
 };
 
