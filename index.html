@@ -1868,5 +1868,21 @@ document.getElementById('modalOverlay').onclick=e=>{if(e.target===document.getEl
   Pages.loadHome();
 })();
 </script>
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js').then(function(reg){
+    // Check for updates
+    reg.addEventListener('updatefound',function(){
+      var w=reg.installing;
+      w.addEventListener('statechange',function(){
+        if(w.state==='installed'&&navigator.serviceWorker.controller){
+          // New version available, reload
+          window.location.reload();
+        }
+      });
+    });
+  });
+}
+</script>
 </body>
 </html>
