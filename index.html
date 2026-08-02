@@ -1451,7 +1451,12 @@ const Pages = {
       const idx=products.findIndex(p=>p.id==editId);
       if(idx!==-1)products[idx]={...products[idx],...data,updated_at:new Date().toISOString()};
     }else{
-      products.push({id:DB._nid('prod'),...data,created_at:new Date().toISOString(),updated_at:new Date().toISOString()});
+      const newId=DB._nid('prod');
+      products.push({id:newId,...data,created_at:new Date().toISOString(),updated_at:new Date().toISOString()});
+      // 新增产品时自动记录
+      const txs=DB.txs();
+      txs.unshift({id:Date.now(),product_id:newId,type:'in',quantity:1,operator:'管理员',remarks:'新增产品到目录',created_at:new Date().toISOString()});
+      DB.saveTxs(txs);
     }
     DB.saveProducts(products);
     UI.closeModal();
