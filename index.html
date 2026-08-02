@@ -825,6 +825,10 @@ const Pages = {
             ${tags?`<div class="store-tags">${tags}</div>`:''}
           </div>
           <div class="store-qty"><div class="store-qty-n">${ss.totalQty}</div><div class="store-qty-u">总库存</div></div>
+          ${Auth.isLocked()?'':`<div class="brand-actions" onclick="event.stopPropagation()">
+            <button class="btn-icon" onclick="Pages.storeForm(${s.id})" title="编辑">✏️</button>
+            <button class="btn-icon" onclick="Pages.deleteStore(${s.id})" title="删除">🗑️</button>
+          </div>`}
           <div class="store-arrow">›</div>
         </div>`;
       }).join('');
