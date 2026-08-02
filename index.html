@@ -12,11 +12,12 @@
 /* === 全局 === */
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --primary:#5B7B95;--primary-dark:#4A6A82;--primary-soft:#EDF1F5;
-  --accent:#D4826A;--accent-soft:#FAEEE8;
+  --primary:#5B7B95;--primary-dark:#4A6A82;--primary-soft:#F0F4F8;
+  --accent:#D4826A;--accent-soft:#FBF0EB;
   --success:#5B7B95;--warning:#C49A5C;--danger:#C0504C;
-  --bg:#F5F0E8;--card:#FFFFFF;--card-alt:#2C3E50;--text:#2A2A2A;--t2:#8C8C8C;--t3:#B8B8B8;--border:#E8E0D5;
-  --radius:12px;--radius-sm:8px;--shadow:none;--shadow-sm:none;--sb:env(safe-area-inset-bottom,16px);
+  --bg:#FFFFFF;--card:#FFFFFF;--card-alt:#2C3E50;
+  --text:#1F2328;--t2:#8B8E94;--t3:#B8BAC4;--border:#EEEEEE;
+  --radius:12px;--radius-sm:8px;--sb:env(safe-area-inset-bottom,16px);
 }
 html{font-size:16px;-webkit-text-size-adjust:100%}
 body{
@@ -26,26 +27,26 @@ body{
 .btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 20px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;gap:6px;transition:all .15s}
 .btn:active{transform:scale(.96)}
 .btn-p{background:var(--primary);color:#fff;font-weight:700}
-.btn-s{background:var(--bg);color:var(--t2);border:1px solid var(--border)}
+.btn-s{background:#F7F8FA;color:var(--t2);border:1px solid var(--border)}
 .btn-d{background:var(--danger);color:#fff}
 .btn-sm{padding:6px 12px;font-size:12px;border-radius:6px}
 .btn-xs{padding:4px 10px;font-size:11px;border-radius:6px}
 .btn-b{width:100%}
 .btn-icon{background:none;border:none;font-size:18px;cursor:pointer;padding:6px;border-radius:6px;line-height:1}
-.btn-icon:active{background:var(--border)}
+.btn-icon:active{background:#F5F5F5}
 .hidden{display:none!important}
 .empty{text-align:center;padding:60px 20px;color:var(--t3);font-size:15px}
 
-/* === 顶部 logo 区 === */
-.brand-hero{display:flex;align-items:center;gap:10px;padding:14px 16px 8px;background:var(--card)}
-.brand-logo{width:36px;height:36px;border-radius:8px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;flex-shrink:0}
+/* === 顶部品牌条 === */
+.brand-hero{display:flex;align-items:center;gap:10px;padding:14px 16px 10px;background:var(--card)}
+.brand-logo{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;flex-shrink:0;box-shadow:0 2px 8px rgba(91,123,149,.18)}
 .brand-name-l{font-size:17px;font-weight:800;letter-spacing:.5px;color:var(--text)}
 
 /* === Tab Bar === */
 .tab-bar{display:flex;gap:0;padding:0 16px;background:var(--card);border-bottom:1px solid var(--border)}
-.tab-item{flex:1;text-align:center;padding:10px 0;font-size:14px;font-weight:600;color:var(--t2);cursor:pointer;position:relative;transition:color .15s}
+.tab-item{text-align:center;padding:10px 20px;font-size:14px;font-weight:600;color:var(--t2);cursor:pointer;position:relative;transition:color .15s}
 .tab-item.active{color:var(--primary)}
-.tab-item.active::after{content:'';position:absolute;bottom:-1px;left:25%;right:25%;height:2px;background:var(--primary);border-radius:1px}
+.tab-item.active::after{content:'';position:absolute;bottom:-1px;left:8px;right:8px;height:2px;background:var(--primary);border-radius:1px}
 
 /* === 头部 === */
 .header{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.92);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
@@ -60,11 +61,11 @@ body{
 .view.active{display:block;animation:pageIn .35s cubic-bezier(.4,0,.2,1)}
 
 /* === 统计条 === */
-.stats{display:flex;gap:8px;padding:10px 14px 12px;background:transparent}
-.stats-i{flex:1;text-align:center;padding:14px 6px;border-radius:var(--radius);background:var(--card);border:1px solid var(--border)}
-.stats-i.warn{background:#FAF3E8}
+.stats{display:flex;gap:8px;padding:10px 14px 14px;background:transparent}
+.stats-i{flex:1;text-align:center;padding:14px 6px;border-radius:var(--radius);background:var(--card);border:1px solid var(--border);box-shadow:0 1px 2px rgba(0,0,0,.03)}
+.stats-i.warn{background:#FFFBF2;border-color:#F0E0C0}
 .stats-i.warn .stats-n{color:var(--warning)}
-.stats-i.danger{background:#FAF0EE}
+.stats-i.danger{background:#FFF8F6;border-color:#F0D0C8}
 .stats-i.danger .stats-n{color:var(--danger)}
 .stats-n{display:block;font-size:22px;font-weight:800;color:var(--primary-dark)}
 .stats-l{display:block;font-size:11px;color:var(--t2);margin-top:2px}
@@ -74,19 +75,27 @@ body{
 .sec-head h2{font-size:17px;font-weight:800}
 .sec-head .btn{padding:6px 12px;font-size:12px;border-radius:6px}
 
-/* === 产品目录入口 === */
-.catalog-entry{margin:0 14px 10px;background:var(--card);border-radius:var(--radius);padding:20px;cursor:pointer;display:flex;align-items:center;gap:14px;transition:all .15s;color:var(--text);border:1px solid var(--border)}
-.catalog-entry:active{transform:scale(.98)}
-.catalog-entry-icon{width:48px;height:48px;border-radius:10px;background:var(--primary-soft);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
-.catalog-entry-body{flex:1;min-width:0}
-.catalog-entry-title{font-size:16px;font-weight:700}
-.catalog-entry-sub{font-size:12px;color:var(--t2);margin-top:2px}
-.catalog-entry-arrow{font-size:20px;color:var(--t3)}
+/* === 快捷入口卡片 === */
+.quick-entry-list{padding:0 14px 12px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.quick-entry{background:var(--card);border-radius:var(--radius);padding:18px 14px;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:10px;transition:all .15s;border:1px solid var(--border);box-shadow:0 1px 2px rgba(0,0,0,.03);position:relative;overflow:hidden}
+.quick-entry:active{transform:scale(.98)}
+.quick-entry::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:3px 3px 0 0}
+.quick-entry.qe-catalog::after{background:linear-gradient(90deg,var(--primary),#7BA0B8)}
+.quick-entry.qe-dashboard::after{background:linear-gradient(90deg,var(--accent),#E8A88A)}
+.qe-icon-wrap{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.qe-icon-wrap.qe-catalog{background:var(--primary-soft)}
+.qe-icon-wrap.qe-dashboard{background:var(--accent-soft)}
+.qe-icon{font-size:22px}
+.qe-body{flex:1}
+.qe-title{font-size:15px;font-weight:700;color:var(--text)}
+.qe-sub{font-size:11px;color:var(--t2);margin-top:1px}
 
-/* === 门店卡片（2列网格） === */
+/* === 门店卡片 === */
 .store-list{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px 14px}
-.store-card{background:var(--card);border-radius:var(--radius);padding:14px 12px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .15s;border:1px solid var(--border)}
+.store-card{background:var(--card);border-radius:var(--radius);cursor:pointer;transition:all .15s;border:1px solid var(--border);box-shadow:0 1px 2px rgba(0,0,0,.03);overflow:hidden}
 .store-card:active{transform:scale(.98)}
+.store-card-inner{display:flex;flex-direction:column;align-items:center;gap:6px;padding:18px 12px 14px;position:relative}
+.store-card-inner::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--primary-soft);border-radius:3px 3px 0 0}
 .store-avatar{width:48px;height:48px;border-radius:12px;background:var(--primary-soft);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
 .store-info{flex:1;min-width:0;text-align:center;width:100%}
 .store-name{font-size:14px;font-weight:700;text-align:center}
@@ -97,13 +106,15 @@ body{
 .store-arrow{display:none}
 .store-card .store-tags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap;justify-content:center}
 .store-tag{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600}
-.store-tag.warn{background:#FAF3E8;color:var(--warning)}
-.store-tag.danger{background:#FAF0EE;color:var(--danger)}
+.store-tag.warn{background:#FFFBF2;color:var(--warning)}
+.store-tag.danger{background:#FFF8F6;color:var(--danger)}
 
-/* === 品牌卡片（2列网格） === */
+/* === 品牌卡片 === */
 .brand-list{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px 14px}
-.brand-card{background:var(--card);border-radius:var(--radius);padding:14px 12px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .15s;border:1px solid var(--border)}
+.brand-card{background:var(--card);border-radius:var(--radius);cursor:pointer;transition:all .15s;border:1px solid var(--border);box-shadow:0 1px 2px rgba(0,0,0,.03);overflow:hidden}
 .brand-card:active{transform:scale(.98)}
+.brand-card-inner{display:flex;flex-direction:column;align-items:center;gap:6px;padding:18px 12px 14px;position:relative}
+.brand-card-inner::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--primary-soft);border-radius:3px 3px 0 0}
 .brand-avatar{width:48px;height:48px;border-radius:12px;background:var(--primary-soft);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0}
 .brand-info{flex:1;min-width:0;text-align:center;width:100%}
 .brand-name{font-size:14px;font-weight:700;text-align:center}
@@ -113,17 +124,25 @@ body{
 .brand-actions{display:flex;gap:4px;flex-shrink:0;justify-content:center}
 .brand-actions .btn-icon{font-size:14px;padding:4px;color:var(--t3)}
 
-/* === 产品卡片（2列网格） === */
+/* === 产品卡片 === */
 .prod-list{padding:0 14px}
 #catProdList{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px 14px}
 .store-prod-group{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .store-prod-group-title{grid-column:1/-1;font-size:12px;font-weight:600;color:var(--t2);padding:6px 0}
-.prod-card{background:var(--card);border-radius:var(--radius);padding:14px 12px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .15s;border:1px solid var(--border)}
+.prod-card{background:var(--card);border-radius:var(--radius);cursor:pointer;transition:all .15s;border:1px solid var(--border);box-shadow:0 1px 2px rgba(0,0,0,.03);overflow:hidden}
 .prod-card:active{transform:scale(.98)}
+.prod-card-inner{display:flex;flex-direction:column;align-items:center;gap:6px;padding:18px 12px 14px;position:relative}
+.prod-card-inner::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:3px 3px 0 0;background:var(--primary-soft)}
+.pa-精华 .prod-card-inner::before{background:#E8DEF5}
+.pa-面霜 .prod-card-inner::before{background:#F5E6D3}
+.pa-眼霜 .prod-card-inner::before{background:#D5E8D3}
+.pa-水 .prod-card-inner::before{background:#D3E0F5}
+.pa-乳液 .prod-card-inner::before{background:#F5D3E8}
+.pa-洁面 .prod-card-inner::before{background:#D3F0F5}
+.pa-面膜 .prod-card-inner::before{background:#E0D5F5}
+.pa-防晒 .prod-card-inner::before{background:#F5F0D3}
+.pa-其他 .prod-card-inner::before{background:#E8E3DB}
 .prod-thumb{width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;overflow:hidden;object-fit:cover}
-.pa-精华{background:#E8DEF5}.pa-面霜{background:#F5E6D3}.pa-眼霜{background:#D5E8D3}
-.pa-水{background:#D3E0F5}.pa-乳液{background:#F5D3E8}.pa-洁面{background:#D3F0F5}
-.pa-面膜{background:#E0D5F5}.pa-防晒{background:#F5F0D3}.pa-其他{background:#E8E3DB}
 .prod-info{flex:1;min-width:0;text-align:center;width:100%}
 .prod-name{font-size:13px;font-weight:600;text-align:center}
 .prod-meta{font-size:11px;color:var(--t2);margin-top:1px;text-align:center}
@@ -137,7 +156,7 @@ body{
 .prod-acts .btn{font-size:11px;padding:4px 8px}
 
 /* === 图片上传 === */
-.img-upload{position:relative;border:2px dashed var(--border);border-radius:var(--radius);padding:18px;text-align:center;cursor:pointer;transition:.2s;min-height:80px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--card)}
+.img-upload{position:relative;border:2px dashed var(--border);border-radius:var(--radius);padding:18px;text-align:center;cursor:pointer;transition:.2s;min-height:80px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#FAFBFC}
 .img-upload:hover{border-color:var(--primary)}
 .img-upload img{max-width:100%;max-height:180px;border-radius:8px;object-fit:contain}
 .img-upload .img-placeholder{color:var(--t3);font-size:13px}
@@ -146,7 +165,7 @@ body{
 
 /* === 搜索筛选 === */
 .search{background:var(--card);padding:12px 14px;border-bottom:1px solid var(--border)}
-.search-wrap{display:flex;align-items:center;background:#F0EBE0;border-radius:8px;padding:0 10px;gap:6px}
+.search-wrap{display:flex;align-items:center;background:#F5F5F5;border-radius:8px;padding:0 10px;gap:6px}
 .search-wrap input{flex:1;border:none;background:none;padding:9px 0;font-size:14px;outline:none;color:var(--text)}
 .search-wrap input::placeholder{color:var(--t3)}
 .s-icon{font-size:14px;opacity:.5}
@@ -156,16 +175,16 @@ body{
 
 /* === 详情 === */
 .detail-wrap{padding:16px 14px}
-.detail-hero{text-align:center;padding:24px 14px;background:var(--primary-soft);border-radius:var(--radius);border:1px solid var(--border)}
+.detail-hero{text-align:center;padding:28px 14px 24px;background:var(--primary-soft);border-radius:var(--radius);border:1px solid var(--border)}
 .d-hero-img{width:100%;max-width:300px;max-height:220px;object-fit:contain;border-radius:var(--radius);margin-bottom:10px}
-.d-avatar{width:56px;height:56px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:6px;background:var(--primary-soft);color:var(--primary)}
+.d-avatar{width:56px;height:56px;border-radius:14px;display:inline-flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:6px;background:var(--primary-soft);color:var(--primary)}
 .d-name{font-size:18px;font-weight:800}
 .d-brand{font-size:13px;color:var(--t2)}
-.d-qty-wrap{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:12px}
-.d-qty-btn{width:40px;height:40px;border-radius:50%;border:2px solid var(--primary);background:#fff;color:var(--primary);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation;transition:all .15s}
+.d-qty-wrap{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:14px}
+.d-qty-btn{width:42px;height:42px;border-radius:50%;border:2px solid var(--primary);background:#fff;color:var(--primary);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation;transition:all .15s;box-shadow:0 1px 3px rgba(91,123,149,.15)}
 .d-qty-btn:active{background:var(--primary);color:#fff}
 .d-qty-val{font-size:28px;font-weight:800;min-width:50px;text-align:center}
-.d-info{background:var(--card);border-radius:var(--radius);margin-top:12px;padding:14px 16px;border:1px solid var(--border)}
+.d-info{background:var(--card);border-radius:var(--radius);margin-top:12px;padding:14px 16px;border:1px solid var(--border);box-shadow:0 1px 2px rgba(0,0,0,.03)}
 .d-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
 .d-row:last-child{border:none}
 .d-label{color:var(--t2)}.d-value{font-weight:500}.d-value.warn{color:var(--danger)}
@@ -176,11 +195,11 @@ body{
 .batch-section{margin-top:10px}
 .batch-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px}
 .batch-head h3{font-size:15px;font-weight:600}
-.batch-card{background:var(--card);border-radius:var(--radius);padding:14px;margin:8px 14px;border:1px solid var(--border)}
+.batch-card{background:var(--card);border-radius:var(--radius);padding:14px;margin:8px 14px;border:1px solid var(--border);box-shadow:0 1px 2px rgba(0,0,0,.03)}
 .batch-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .batch-no{font-weight:700;font-size:13px}
 .batch-expiry{font-size:11px;padding:2px 8px;border-radius:20px}
-.batch-expiry.warn{background:#FAF0EE;color:var(--danger)}
+.batch-expiry.warn{background:#FFF8F6;color:var(--danger)}
 .batch-expiry.ok{background:var(--primary-soft);color:var(--primary-dark)}
 .batch-info{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px}
 .batch-info span{color:var(--t2)}
@@ -188,7 +207,7 @@ body{
 .batch-acts{display:flex;gap:6px;margin-top:10px;justify-content:flex-end}
 
 /* === Fab === */
-.fab{position:fixed;bottom:calc(24px + var(--sb));right:16px;width:52px;height:52px;border-radius:50%;background:var(--primary);color:#fff;font-size:26px;border:none;box-shadow:0 4px 12px rgba(91,123,149,.25);cursor:pointer;z-index:50;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.fab{position:fixed;bottom:calc(24px + var(--sb));right:16px;width:52px;height:52px;border-radius:50%;background:var(--primary);color:#fff;font-size:26px;border:none;box-shadow:0 4px 16px rgba(91,123,149,.28);cursor:pointer;z-index:50;display:flex;align-items:center;justify-content:center;transition:all .2s}
 .fab:active{transform:scale(.9)}
 
 /* === 弹窗 === */
@@ -203,7 +222,7 @@ body{
 .fg label{display:block;font-size:12px;font-weight:600;color:var(--t2);margin-bottom:4px}
 .fg label .req{color:var(--danger)}
 .fg input,.fg select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--card);color:var(--text);outline:none;transition:border-color .2s}
-.fg input:focus,.fg select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(91,123,149,.12)}
+.fg input:focus,.fg select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(91,123,149,.1)}
 .fr{display:flex;gap:8px}.f1{flex:1}
 .fa{display:flex;gap:8px;margin-top:18px}.fa .btn{flex:1;padding:11px;font-size:14px}
 .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
@@ -219,9 +238,9 @@ body{
 /* === 记录 === */
 .section-head{padding:18px 14px 10px}.section-head h2{font-size:17px;font-weight:800}
 .tx-list{padding:0 14px}
-.tx-item{display:flex;align-items:center;gap:12px;padding:12px 14px;margin:6px 0;background:var(--card);border-radius:var(--radius-sm);font-size:13px;border:1px solid var(--border)}
+.tx-item{display:flex;align-items:center;gap:12px;padding:12px 14px;margin:6px 0;background:var(--card);border-radius:var(--radius-sm);font-size:13px;border:1px solid var(--border);box-shadow:0 1px 2px rgba(0,0,0,.02)}
 .tx-badge{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap}
-.tx-badge.in{background:var(--primary-soft);color:var(--primary-dark)}.tx-badge.out{background:#FAF0EE;color:var(--danger)}
+.tx-badge.in{background:var(--primary-soft);color:var(--primary-dark)}.tx-badge.out{background:#FFF8F6;color:var(--danger)}
 .tx-info{flex:1}.tx-prod{font-weight:600}.tx-meta{font-size:11px;color:var(--t2)}.tx-time{font-size:10px;color:var(--t3);white-space:nowrap}
 
 /* === Toast === */
@@ -230,7 +249,7 @@ body{
 
 /* === 密码弹窗 === */
 .pw-dialog{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:250;display:flex;align-items:center;justify-content:center;animation:fIn .2s}
-.pw-box{background:var(--card);border-radius:var(--radius);padding:28px 24px;width:300px;border:1px solid var(--border)}
+.pw-box{background:var(--card);border-radius:var(--radius);padding:28px 24px;width:300px;border:1px solid var(--border);box-shadow:0 8px 32px rgba(0,0,0,.08)}
 .pw-box h3{font-size:16px;margin-bottom:4px}
 .pw-box p{font-size:12px;color:var(--t2);margin-bottom:14px}
 .pw-box input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:15px;outline:none}
@@ -240,7 +259,7 @@ body{
 
 /* === 设置页 === */
 .settings-wrap{padding:16px}
-.set-card{background:var(--card);border-radius:var(--radius);padding:18px;margin-bottom:14px;border:1px solid var(--border)}
+.set-card{background:var(--card);border-radius:var(--radius);padding:18px;margin-bottom:14px;border:1px solid var(--border);box-shadow:0 1px 2px rgba(0,0,0,.03)}
 .set-card h3{font-size:15px;margin-bottom:10px}
 .set-card .fg{margin-bottom:10px}
 .set-card .set-hint{font-size:10px;color:var(--t2);display:block;margin-top:4px}
@@ -261,8 +280,8 @@ body{
 .dark-section .stats-i{background:rgba(255,255,255,.08);border:none}
 
 @media(min-width:768px){
-  body{background:#EDE7DD}
-  #app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--bg);box-shadow:0 0 40px rgba(0,0,0,.04)}
+  body{background:#F2F2F5}
+  #app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--bg);box-shadow:0 0 40px rgba(0,0,0,.06)}
   .fab{right:calc(50% - 210px)}
 }
 
@@ -289,7 +308,6 @@ body{
     </div>
     <div class="tab-bar">
       <div class="tab-item active" onclick="Pages.loadHome()">首页</div>
-      <div class="tab-item" onclick="Pages.openCatalogHome()">目录</div>
       <div class="tab-item" onclick="Pages.loadAllTxs()">记录</div>
     </div>
     <div class="stats">
@@ -299,24 +317,36 @@ body{
       <div class="stats-i danger"><span class="stats-n" id="sExpiry">--</span><span class="stats-l">临期批次</span></div>
     </div>
 
-    <!-- 产品目录入口 -->
-    <div class="catalog-entry" onclick="Pages.openCatalogHome()">
-      <div class="catalog-entry-icon">📦</div>
-      <div class="catalog-entry-body">
-        <div class="catalog-entry-title">产品目录</div>
-        <div class="catalog-entry-sub">管理品牌和产品基础信息</div>
+    <!-- 快捷入口 -->
+    <div class="quick-entry-list">
+      <div class="quick-entry qe-catalog" onclick="Pages.openCatalogHome()">
+        <div class="qe-icon-wrap qe-catalog">
+          <svg class="qe-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5B7B95" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+            <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+            <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+            <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+          </svg>
+        </div>
+        <div class="qe-body">
+          <div class="qe-title">产品目录</div>
+          <div class="qe-sub">管理品牌与产品</div>
+        </div>
       </div>
-      <div class="catalog-entry-arrow">›</div>
-    </div>
-
-    <!-- 数据看板入口 -->
-    <div class="catalog-entry" onclick="Pages.openDashboard()" style="background:var(--card);color:var(--text)">
-      <div class="catalog-entry-icon" style="background:var(--bg);color:var(--primary)">📊</div>
-      <div class="catalog-entry-body">
-        <div class="catalog-entry-title" style="color:var(--text)">数据看板</div>
-        <div class="catalog-entry-sub" style="color:var(--t2)">库存价值分析</div>
+      <div class="quick-entry qe-dashboard" onclick="Pages.openDashboard()">
+        <div class="qe-icon-wrap qe-dashboard">
+          <svg class="qe-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#D4826A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <path d="M3 9h18"/>
+            <path d="M9 21V9"/>
+            <path d="M15 21v-5"/>
+          </svg>
+        </div>
+        <div class="qe-body">
+          <div class="qe-title">数据看板</div>
+          <div class="qe-sub">库存价值分析</div>
+        </div>
       </div>
-      <div class="catalog-entry-arrow" style="color:var(--t3)">›</div>
     </div>
 
     <!-- 门店区 -->
@@ -776,6 +806,7 @@ const Pages = {
         if(ss.lowStock)tags+='<span class="store-tag warn">⚠️ '+ss.lowStock+'款不足</span>';
         if(ss.nearExpiry)tags+='<span class="store-tag danger">📅 '+ss.nearExpiry+'批临期</span>';
         return `<div class="store-card" onclick="Pages.openStore(${s.id})">
+          <div class="store-card-inner">
           ${s.image?`<img class="brand-avatar-img" src="${s.image}" alt="${UI.esc(s.name)}">`:`<div class="store-avatar">🏪</div>`}
           <div class="store-info">
             <div class="store-name">${UI.esc(s.name)}</div>
@@ -788,6 +819,7 @@ const Pages = {
             <button class="btn-icon" onclick="Pages.deleteStore(${s.id})" title="删除">🗑️</button>
           </div>`}
           <div class="store-arrow">›</div>
+          </div>
         </div>`;
       }).join('');
     }
@@ -860,6 +892,7 @@ const Pages = {
     container.innerHTML=brands.map(b=>{
       const prodCount=DB.products(b.id).length;
       return `<div class="brand-card" onclick="Pages.openCatalogBrand(${b.id})">
+        <div class="brand-card-inner">
         ${b.image?`<img class="brand-avatar-img" src="${b.image}" alt="${UI.esc(b.name)}">`:`<div class="brand-avatar">${UI.esc(b.name).charAt(0)}</div>`}
         <div class="brand-info">
           <div class="brand-name">${UI.esc(b.name)}</div>
@@ -868,6 +901,7 @@ const Pages = {
         <div class="brand-actions" onclick="event.stopPropagation()">
           <button class="btn-icon" onclick="Pages.brandForm(${b.id})" title="编辑">✏️</button>
           <button class="btn-icon" onclick="Pages.deleteBrand(${b.id})" title="删除">🗑️</button>
+        </div>
         </div>
       </div>`;
     }).join('');
