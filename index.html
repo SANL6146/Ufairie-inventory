@@ -96,20 +96,19 @@ body{
 .qe-sub{font-size:11px;color:var(--t2);margin-top:1px}
 
 /* === 门店卡片 === */
-.store-list{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px 14px}
-.store-card{background:var(--card);border-radius:var(--radius);cursor:pointer;transition:all .15s;border:1px solid var(--border);box-shadow:0 1px 2px rgba(0,0,0,.03);overflow:hidden}
+.store-list{display:flex;flex-direction:column;gap:8px;padding:10px 14px}
+.store-card{background:var(--card);border-radius:var(--radius);cursor:pointer;transition:all .15s;border:1px solid var(--border);box-shadow:0 1px 2px rgba(0,0,0,.03);overflow:hidden;display:flex;align-items:center;gap:10px;padding:14px;position:relative}
+.store-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--primary-soft);border-radius:3px 3px 0 0}
 .store-card:active{transform:scale(.98)}
-.store-card-inner{display:flex;flex-direction:column;align-items:center;gap:6px;padding:18px 12px 14px;position:relative}
-.store-card-inner::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--primary-soft);border-radius:3px 3px 0 0}
 .store-avatar{width:48px;height:48px;border-radius:12px;background:var(--primary-soft);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
-.store-info{flex:1;min-width:0;text-align:center;width:100%}
-.store-name{font-size:14px;font-weight:700;text-align:center}
-.store-meta{font-size:11px;color:var(--t2);margin-top:2px;text-align:center}
+.store-info{flex:1;min-width:0}
+.store-name{font-size:14px;font-weight:700}
+.store-meta{font-size:11px;color:var(--t2);margin-top:2px}
 .store-qty{text-align:center;min-width:40px}
 .store-qty-n{font-size:18px;font-weight:800;color:var(--primary-dark);line-height:1.1}
 .store-qty-u{font-size:10px;color:var(--t2)}
-.store-arrow{display:none}
-.store-card .store-tags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap;justify-content:center}
+.store-arrow{font-size:20px;color:var(--t3);flex-shrink:0;margin-left:4px}
+.store-card .store-tags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
 .store-tag{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600}
 .store-tag.warn{background:#FFFBF2;color:var(--warning)}
 .store-tag.danger{background:#FFF8F6;color:var(--danger)}
@@ -819,7 +818,6 @@ const Pages = {
         if(ss.lowStock)tags+='<span class="store-tag warn">⚠️ '+ss.lowStock+'款不足</span>';
         if(ss.nearExpiry)tags+='<span class="store-tag danger">📅 '+ss.nearExpiry+'批临期</span>';
         return `<div class="store-card" onclick="Pages.openStore(${s.id})">
-          <div class="store-card-inner">
           ${s.image?`<img class="brand-avatar-img" src="${s.image}" alt="${UI.esc(s.name)}">`:`<div class="store-avatar">🏪</div>`}
           <div class="store-info">
             <div class="store-name">${UI.esc(s.name)}</div>
@@ -827,12 +825,7 @@ const Pages = {
             ${tags?`<div class="store-tags">${tags}</div>`:''}
           </div>
           <div class="store-qty"><div class="store-qty-n">${ss.totalQty}</div><div class="store-qty-u">总库存</div></div>
-          ${Auth.isLocked()?'':`<div class="brand-actions" onclick="event.stopPropagation()">
-            <button class="btn-icon" onclick="Pages.storeForm(${s.id})" title="编辑">✏️</button>
-            <button class="btn-icon" onclick="Pages.deleteStore(${s.id})" title="删除">🗑️</button>
-          </div>`}
           <div class="store-arrow">›</div>
-          </div>
         </div>`;
       }).join('');
     }
@@ -1194,6 +1187,9 @@ const Pages = {
       remarks:'',created_at:new Date().toISOString()
     });
     DB.saveBatches(batches);
+    const txs=DB.txs();
+    txs.unshift({id:Date.now(),product_id:prodId,type:'in',quantity:qty,operator:Auth.isAdmin?'管理员':'用户',remarks:`新增 ${batchNo}`,created_at:new Date().toISOString()});
+    DB.saveTxs(txs);
     UI.closeModal();
     this._renderStoreProducts();
     UI.toast('已添加产品到门店','success');
