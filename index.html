@@ -244,14 +244,6 @@ body{
 .toast.error{background:var(--danger)}.toast.success{background:var(--primary-dark)}
 
 /* === 密码弹窗 === */
-.pw-dialog{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:250;display:flex;align-items:center;justify-content:center;animation:fIn .2s}
-.pw-box{background:var(--card);border-radius:var(--radius);padding:28px 24px;width:300px;border:1px solid var(--border);box-shadow:0 8px 32px rgba(0,0,0,.08)}
-.pw-box h3{font-size:16px;margin-bottom:4px}
-.pw-box p{font-size:12px;color:var(--t2);margin-bottom:14px}
-.pw-box input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:15px;outline:none}
-.pw-box input:focus{border-color:var(--primary)}
-.pw-acts{display:flex;gap:8px;margin-top:14px}
-.pw-acts .btn{flex:1;padding:10px;font-size:13px}
 
 /* === 设置页 === */
 .settings-wrap{padding:16px}
@@ -364,7 +356,7 @@ body{
       <div class="tx-list" id="txListAll"><div class="empty">加载中…</div></div>
     </div>
 
-    <button class="fab hidden" id="fabHome">+</button>
+    <button class="fab hidden" id="fabHome" onclick="Pages.storeForm()">+</button>
   </div>
 
   <!-- 产品目录 → 品牌列表 -->
@@ -434,23 +426,7 @@ body{
         </div>
         <p id="syncMsg" style="font-size:11px;color:var(--t2);margin-top:8px"></p>
       </div>
-      <div class="set-card">
-        <h3>🔐 管理员密码</h3>
-        <p style="font-size:12px;color:var(--t2);margin-bottom:8px">设置后，首页右下角会出现锁图标，需要密码才能编辑数据。不设置则所有人可编辑。</p>
-        <div class="fg">
-          <label>新密码</label>
-          <input type="password" id="setPw" placeholder="留空则不设置密码">
-        </div>
-        <div class="fg">
-          <label>确认密码</label>
-          <input type="password" id="setPw2" placeholder="再次输入确认">
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn-p btn-b" onclick="Settings.savePassword()">💾 保存密码</button>
-          <button class="btn btn-d btn-b" onclick="Settings.clearPassword()" id="btnClearPw" style="display:none">🗑️ 清除密码</button>
-        </div>
-        <p id="pwMsg" style="font-size:11px;color:var(--t2);margin-top:8px"></p>
-      </div>
+
       <div class="set-card">
         <h3>📊 数据管理</h3>
         <button class="btn btn-s btn-b" style="margin-bottom:8px" onclick="Settings.exportData()">导出全部数据 (JSON)</button>
@@ -594,18 +570,8 @@ function compressImage(file, maxWidth, quality){
 
 /* ==================== 权限 ==================== */
 const Auth = {
-  isAdmin: false,
-  hasPassword(){return !!localStorage.getItem('sk_pw')},
-  setPassword(pw){
-    if(!pw){localStorage.removeItem('sk_pw');return}
-    localStorage.setItem('sk_pw',btoa(pw));
-  },
-  check(pw){return btoa(pw)===localStorage.getItem('sk_pw')},
-  require(callback){
-    if(!this.isLocked()){callback();return}
-    UI.showPassword('需要管理员密码才能操作',ok=>{if(ok)callback()});
-  },
-  isLocked(){return !!localStorage.getItem('sk_pw')&&!Auth.isAdmin}
+  require(callback){callback();},
+  isLocked(){return false}
 };
 
 /* ==================== GitHub 云同步 ==================== */
@@ -804,18 +770,6 @@ const UI = {
     return html;
   },
 
-  showPassword(msg,cb){
-    const div=document.createElement('div');
-    div.className='pw-dialog';
-    div.innerHTML=`<div class="pw-box"><h3>🔒 需要密码</h3><p>${msg}</p><input type="password" id="pwInput" placeholder="输入管理员密码" autofocus><div class="pw-acts"><button class="btn btn-s" onclick="this.closest('.pw-dialog').remove()">取消</button><button class="btn btn-p" id="pwConfirm">确认</button></div></div>`;
-    document.body.appendChild(div);
-    const input=div.querySelector('#pwInput');
-    input.focus();
-    const confirm=()=>{const pw=input.value;div.remove();if(Auth.check(pw)){Auth.isAdmin=true;cb(true)}else{UI.toast('密码错误','error');cb(false)}};
-    div.querySelector('#pwConfirm').onclick=confirm;
-    input.onkeydown=e=>{if(e.key==='Enter')confirm()};
-    div.onclick=e=>{if(e.target===div)div.remove()};
-  }
 };
 
 /* ==================== 页面逻辑 ==================== */
@@ -858,32 +812,9 @@ const Pages = {
     }
     UI.go('stores');
     this.switchTab('home');
-    this.updateFab();
   },
 
-  updateFab(){
-    const fab=document.getElementById('fabHome');
-    if(!fab||fab.classList.contains('hidden'))return;
-    const wasLocked=fab.textContent==='🔒';
-    if(Auth.isLocked()){
-      fab.textContent='🔒';
-      fab.onclick=()=>this.unlockFab();
-    }else{
-      fab.textContent='+';
-      fab.onclick=()=>this.storeForm();
-    }
-    if(wasLocked&&!Auth.isLocked())this.loadHome();
-  },
 
-  unlockFab(){
-    if(!Auth.hasPassword()){
-      UI.toast('请先在设置中设置管理员密码','warn');
-      return;
-    }
-    UI.showPassword('需要管理员密码才能操作',ok=>{
-      if(ok)this.updateFab();
-    });
-  },
 
   openDashboard(){
     document.getElementById('headerTitle').textContent='数据看板';
@@ -1240,7 +1171,7 @@ const Pages = {
     });
     DB.saveBatches(batches);
     const txs=DB.txs();
-    txs.unshift({id:Date.now(),product_id:prodId,type:'in',quantity:qty,operator:Auth.isAdmin?'管理员':'用户',remarks:`新增 ${batchNo}`,created_at:new Date().toISOString()});
+    txs.unshift({id:Date.now(),product_id:prodId,type:'in',quantity:qty,operator:'管理员',remarks:`新增 ${batchNo}`,created_at:new Date().toISOString()});
     DB.saveTxs(txs);
     UI.closeModal();
     this._renderStoreProducts();
@@ -1304,7 +1235,7 @@ const Pages = {
     DB.saveBatches(allBatches);
 
     const txs=DB.txs();
-    txs.unshift({id:Date.now(),product_id:productId,type,quantity:qty,operator:Auth.isAdmin?'管理员':'用户',remarks,created_at:new Date().toISOString()});
+    txs.unshift({id:Date.now(),product_id:productId,type,quantity:qty,operator:'管理员',remarks,created_at:new Date().toISOString()});
     DB.saveTxs(txs);
 
     UI.closeModal();
@@ -1702,7 +1633,7 @@ const Pages = {
     document.getElementById('fabHome').classList.toggle('hidden',tab!=='home');
     document.getElementById('headerTitle').textContent=tab==='home'?'':'操作记录';
     window.scrollTo(0,0);
-    if(tab==='home')this.updateFab();
+
   },
 
   // === 操作记录（单产品） ===
@@ -1728,7 +1659,6 @@ const Pages = {
   settings(){
     document.getElementById('headerTitle').textContent='⚙️ 设置';
     Settings.initSync();
-    Settings.initPassword();
     UI.go('settings');
   },
 };
@@ -1804,39 +1734,11 @@ const Settings = {
       else if(res.status===403){document.getElementById('syncMsg').textContent='Token 权限不足 ❌ — 需勾选 repo 权限';}
       else{document.getElementById('syncMsg').textContent='连接失败 HTTP '+res.status;}
     }catch(e){document.getElementById('syncMsg').textContent='网络错误 — 无法访问 GitHub API';}
-  },
-  initPassword(){
-    const hasPw=Auth.hasPassword();
-    document.getElementById('btnClearPw').style.display=hasPw?'':'none';
-    document.getElementById('pwMsg').textContent=hasPw?'✅ 已设置管理员密码':'';
-    document.getElementById('setPw').value='';
-    document.getElementById('setPw2').value='';
-  },
-  savePassword(){
-    const pw=document.getElementById('setPw').value;
-    const pw2=document.getElementById('setPw2').value;
-    if(!pw){Auth.setPassword('');document.getElementById('pwMsg').textContent='密码已清除';document.getElementById('btnClearPw').style.display='none';Auth.isAdmin=false;Pages.updateFab();return}
-    if(pw!==pw2){document.getElementById('pwMsg').textContent='❌ 两次密码不一致';return}
-    if(pw.length<2){document.getElementById('pwMsg').textContent='❌ 密码至少2位';return}
-    Auth.setPassword(pw);
-    document.getElementById('pwMsg').textContent='✅ 密码已设置';
-    document.getElementById('btnClearPw').style.display='';
-    document.getElementById('setPw').value='';
-    document.getElementById('setPw2').value='';
-    Auth.isAdmin=true;
-    Pages.updateFab();
-  },
-  clearPassword(){
-    if(!confirm('确定清除管理员密码？清除后所有人可编辑数据。'))return;
-    Auth.setPassword('');
-    Auth.isAdmin=false;
-    document.getElementById('pwMsg').textContent='密码已清除';
-    document.getElementById('btnClearPw').style.display='none';
-    Pages.updateFab();
   }
 };
 
-/* ==================== 初始化 ==================== */
+/* ==================== 初始化 ====================
+localStorage.removeItem('sk_pw'); // 清除旧密码数据 */
 document.getElementById('btnBack').onclick=()=>UI.goBack();
 document.getElementById('modalOverlay').onclick=e=>{if(e.target===document.getElementById('modalOverlay'))UI.closeModal()};
 
