@@ -1793,21 +1793,21 @@ document.getElementById('modalOverlay').onclick=e=>{if(e.target===document.getEl
     }
   }
 
-  // 数据修复：为没有交易记录的批次补录入库记录（只运行一次）
-  if(!localStorage.getItem('sk_tx_migrated')){
+  // 数据修复：为没有对应入库记录的批次补录入库记录（只运行一次）
+  if(localStorage.getItem('sk_tx_migrated')!=='2'){
     const allBatches=DB.allBatches();
     const txs=DB.txs();
-    const hasTxPids=new Set(txs.map(t=>t.product_id));
+    const pidWithInTx=new Set(txs.filter(t=>t.type==='in').map(t=>t.product_id));
     let added=0;
     allBatches.forEach(b=>{
-      if(!hasTxPids.has(b.product_id)){
+      if(!pidWithInTx.has(b.product_id)){
         txs.unshift({id:Date.now()+added,product_id:b.product_id,type:'in',quantity:b.quantity,operator:'管理员',remarks:`补录 ${b.batch_no}`,created_at:b.created_at||new Date().toISOString()});
-        hasTxPids.add(b.product_id);
+        pidWithInTx.add(b.product_id);
         added++;
       }
     });
     if(added>0){DB.saveTxs(txs);}
-    localStorage.setItem('sk_tx_migrated','1');
+    localStorage.setItem('sk_tx_migrated','2');
   }
 
   // 已有数据直接展示
