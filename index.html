@@ -236,7 +236,7 @@ body{
 .tx-list{padding:0 14px}
 .tx-item{display:flex;align-items:center;gap:12px;padding:12px 14px;margin:6px 0;background:var(--card);border-radius:var(--radius-sm);font-size:13px;border:1px solid var(--border);box-shadow:0 1px 2px rgba(0,0,0,.02)}
 .tx-badge{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap}
-.tx-badge.in{background:var(--primary-soft);color:var(--primary-dark)}.tx-badge.out{background:#FFF8F6;color:var(--danger)}
+.tx-badge.in{background:var(--primary-soft);color:var(--primary-dark)}.tx-badge.out{background:#FFF8F6;color:var(--danger)}.tx-badge.transfer{background:#FFF7ED;color:#D4826A}
 .tx-info{flex:1}.tx-prod{font-weight:600}.tx-meta{font-size:11px;color:var(--t2)}.tx-time{font-size:10px;color:var(--t3);white-space:nowrap}
 
 /* === Toast === */
@@ -1091,6 +1091,7 @@ const Pages = {
             <div class="prod-acts" onclick="event.stopPropagation()">
               <button class="btn btn-sm btn-p" onclick="Pages.storeQuickTx(${p.id},'out')">出库</button>
               <button class="btn btn-sm btn-s" onclick="Pages.storeQuickTx(${p.id},'in')">入库</button>
+              <button class="btn btn-sm" style="background:var(--accent);color:#fff" onclick="Pages.storeTransfer(${p.id})">调配</button>
             </div>
           </div>
           <div class="prod-qty"><div class="prod-qty-n ${qc}">${qty}</div><div class="prod-qty-u">${UI.esc(p.unit)}</div></div>
@@ -1244,7 +1245,81 @@ const Pages = {
     else Pages._renderStoreProducts();
   },
 
-  // === 门店管理 ===
+  // === 门店间调配 ===
+  storeTransfer(productId){
+    const fromStoreId=UI.currentStoreId;
+    const p=DB.allProducts().find(x=>x.id==productId);
+    if(!p)return;
+    const batches=DB.batches(productId,fromStoreId);
+    if(!batches.length){UI.toast('该产品在此门店无库存','error');return}
+    const fromStore=DB.stores().find(s=>s.id==fromStoreId);
+    const otherStores=DB.stores().filter(s=>s.id!=fromStoreId);
+    if(!otherStores.length){UI.toast('没有其他门店可调配','error');return}
+
+    let batchOptions=batches.map(b=>{
+      const isExp=b.expiration_date&&DB.isExpiring(b.expiration_date);
+      return `<option value="${b.id}" ${isExp?'style="color:var(--danger)"':''}>批次${UI.esc(b.batch_no)} | ${UI.fmtDate(b.expiration_date)} | 库存${b.quantity}${UI.esc(p.unit)}</option>`;
+    }).join('');
+    let storeOptions=otherStores.map(s=>`<option value="${s.id}">${UI.esc(s.name)}</option>`).join('');
+
+    UI.showModal(
+      '🔄 调配 - '+p.name,
+      `<div style="text-align:center;margin-bottom:10px;color:var(--t2);font-size:13px">从 <strong>${UI.esc(fromStore?fromStore.name:'')}</strong> 调出</div>
+      <div class="fg"><label>调出批次</label><select id="tfBatchId">${batchOptions}</select></div>
+      <div class="fg"><label>调入门店</label><select id="tfToStore">${storeOptions}</select></div>
+      <div class="fg"><label>数量</label>
+        <div style="display:flex;align-items:center;gap:14px;justify-content:center">
+          <button type="button" class="d-qty-btn" onclick="let e=document.getElementById('tfQty');e.value=Math.max(1,parseInt(e.value||1)-1);return false">−</button>
+          <input type="number" id="tfQty" value="1" min="1" inputmode="none" readonly style="width:60px;text-align:center;font-size:20px;font-weight:700;border:none;background:var(--bg);border-radius:8px;padding:6px;pointer-events:none">
+          <button type="button" class="d-qty-btn" onclick="let e=document.getElementById('tfQty');e.value=parseInt(e.value||1)+1;return false">+</button>
+        </div></div>
+      <div class="fg"><label>备注</label><input type="text" id="tfRemarks" placeholder="选填"></div>
+      <button class="btn btn-p btn-b" onclick="Pages.confirmTransfer(${productId},${fromStoreId})">确认调配</button>`
+    );
+  },
+
+  confirmTransfer(productId,fromStoreId){
+    const batchId=parseInt(document.getElementById('tfBatchId').value);
+    const toStoreId=parseInt(document.getElementById('tfToStore').value);
+    const qty=parseInt(document.getElementById('tfQty').value)||1;
+    const remarks=document.getElementById('tfRemarks').value||'';
+    const p=DB.allProducts().find(x=>x.id==productId);
+    if(!p){UI.toast('产品不存在','error');return}
+    if(fromStoreId===toStoreId){UI.toast('不能调配到同一门店','error');return}
+
+    let allBatches=DB.allBatches();
+    const srcIdx=allBatches.findIndex(b=>b.id==batchId);
+    if(srcIdx===-1){UI.toast('批次不存在','error');return}
+    if(allBatches[srcIdx].quantity<qty){UI.toast('库存不足','error');return}
+
+    // 源门店批次减库存
+    const srcBatch=allBatches[srcIdx];
+    srcBatch.quantity-=qty;
+
+    // 目标门店加批次（同批次号）
+    allBatches.push({
+      id:DB._nid('batch'),store_id:toStoreId,product_id:productId,
+      batch_no:srcBatch.batch_no,
+      production_date:srcBatch.production_date,
+      expiration_date:srcBatch.expiration_date,
+      quantity:qty,
+      purchase_date:new Date().toISOString().slice(0,10),
+      remarks:'调配入库',created_at:new Date().toISOString()
+    });
+    DB.saveBatches(allBatches);
+
+    // 记录交易
+    const fromStore=DB.stores().find(s=>s.id==fromStoreId);
+    const toStore=DB.stores().find(s=>s.id==toStoreId);
+    const txs=DB.txs();
+    txs.unshift({id:Date.now(),product_id:productId,type:'transfer',quantity:qty,operator:'管理员',remarks:remarks||`${UI.esc(fromStore?fromStore.name:'')} → ${UI.esc(toStore?toStore.name:'')}`,from_store:fromStoreId,to_store:toStoreId,created_at:new Date().toISOString()});
+    DB.saveTxs(txs);
+
+    UI.closeModal();
+    UI.toast(`已调配 ${qty} ${UI.esc(p.unit)} 到${UI.esc(toStore?toStore.name:'')}`,'success');
+    if(UI.currentView==='detail')Pages.showDetail(productId);
+    else Pages._renderStoreProducts();
+  },
   storeForm(editId){
     const s=editId?DB.stores().find(x=>x.id==editId):null;
     UI._tempImage=s?s.image||null:null;
@@ -1539,8 +1614,9 @@ const Pages = {
           </div>
           ${batchesHtml}
         </div>
-        <div style="padding:12px 14px">
+        <div style="padding:12px 14px;display:flex;gap:8px">
           <button class="btn btn-s btn-sm btn-b" onclick="Pages.showTxs(${p.id})">📋 查看操作记录</button>
+          ${storeId?`<button class="btn btn-sm btn-b" style="background:#FFF7ED;color:#D4826A;border:1px solid #F0D5C5" onclick="Pages.storeTransfer(${p.id})">🔄 调配到其他门店</button>`:''}
         </div>
       </div>`;
     UI.go('detail');
@@ -1620,7 +1696,7 @@ const Pages = {
         const p=DB.allProducts().find(x=>x.id==t.product_id);
         const prodName=p?p.name:'已删除产品';
         return `<div class="tx-item">
-          <span class="tx-badge ${t.type}">${t.type==='in'?'入库':'出库'}</span>
+          <span class="tx-badge ${t.type}">${t.type==='in'?'入库':t.type==='transfer'?'调配':'出库'}</span>
           <span style="font-size:13px;font-weight:600;margin-right:4px">${t.quantity}件</span>
           <div class="tx-info"><span class="tx-meta">${UI.esc(prodName)} · ${UI.esc(t.operator)}${t.remarks?' · '+UI.esc(t.remarks):''}</span></div>
           <span class="tx-time">${new Date(t.created_at).toLocaleString('zh-CN')}</span>
@@ -1651,7 +1727,7 @@ const Pages = {
     if(!txs.length){container.innerHTML='<div class="empty">暂无操作记录</div>'}
     else{
       container.innerHTML=txs.map(t=>`<div class="tx-item">
-        <span class="tx-badge ${t.type}">${t.type==='in'?'入库':'出库'}</span>
+        <span class="tx-badge ${t.type}">${t.type==='in'?'入库':t.type==='transfer'?'调配':'出库'}</span>
         <span style="font-size:13px;font-weight:600;margin-right:4px">${t.quantity}件</span>
         <div class="tx-info"><span class="tx-meta">${UI.esc(t.operator)}${t.remarks?' · '+UI.esc(t.remarks):''}</span></div>
         <span class="tx-time">${new Date(t.created_at).toLocaleString('zh-CN')}</span>
@@ -1871,12 +1947,10 @@ document.getElementById('modalOverlay').onclick=e=>{if(e.target===document.getEl
 <script>
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('/sw.js').then(function(reg){
-    // Check for updates
     reg.addEventListener('updatefound',function(){
       var w=reg.installing;
       w.addEventListener('statechange',function(){
         if(w.state==='installed'&&navigator.serviceWorker.controller){
-          // New version available, reload
           window.location.reload();
         }
       });
