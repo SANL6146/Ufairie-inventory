@@ -1185,16 +1185,34 @@ const Pages = {
     const cb=()=>{
       const p=DB.allProducts().find(x=>x.id==productId);
       if(!p)return;
-      const batches=DB.batches(productId,storeId);
-      if(type==='out'&&!batches.length){UI.toast('该产品在此门店无库存','error');return}
-      let batchOptions=batches.map(b=>{
+const batches=DB.batches(productId,storeId);
+    if(type==='out'&&!batches.length){UI.toast('该产品在此门店无库存','error');return}
+    const availableBatches=type==='out'?batches.filter(b=>b.quantity>0):batches;
+    if(type==='out'&&!availableBatches.length){UI.toast('该产品在此门店库存为0','error');return}
+      let batchOptions=availableBatches.map(b=>{
         const isExp=b.expiration_date&&DB.isExpiring(b.expiration_date);
         return `<option value="${b.id}" ${isExp?'style="color:var(--danger)"':''}>批次${UI.esc(b.batch_no)} | ${UI.fmtDate(b.expiration_date)} | 库存${b.quantity}${p.unit}</option>`;
       }).join('');
+      // 默认选中库存最多的批次（临期优先）
+      let defaultSelected='';
+      if(type==='out'&&availableBatches.length){
+        const sorted=[...availableBatches].sort((a,b)=>{
+          const ea=a.expiration_date||'9999';
+          const eb=b.expiration_date||'9999';
+          return ea.localeCompare(eb);
+        });
+        defaultSelected=` value="${sorted[0].id}"`;
+        // 重写options，把默认选中的放第一个
+        const first=sorted[0];
+        const rest=sorted.slice(1);
+        batchOptions=`<option value="${first.id}" selected>批次${UI.esc(first.batch_no)} | ${UI.fmtDate(first.expiration_date)} | 库存${first.quantity}${UI.esc(p.unit)}${(first.expiration_date&&DB.isExpiring(first.expiration_date))?' ⚠️':''}</option>`
+          +rest.map(b=>`<option value="${b.id}">批次${UI.esc(b.batch_no)} | ${UI.fmtDate(b.expiration_date)} | 库存${b.quantity}${UI.esc(p.unit)}${(b.expiration_date&&DB.isExpiring(b.expiration_date))?' ⚠️':''}</option>`).join('');
+      }
+      const batchCountNote=type==='out'&&availableBatches.length>1?'<div style="text-align:center;font-size:11px;color:var(--warning);margin-top:-6px;margin-bottom:8px">💡 库存分散在 '+availableBatches.length+' 个批次，不够时会自动从其他批次补齐</div>':'';
       UI.showModal(
         type==='out'?'📤 出库 - '+p.name:'📥 入库 - '+p.name,
         `<div style="text-align:center;margin-bottom:10px;color:var(--t2);font-size:13px">总库存: <strong>${DB.storeProductQty(productId,storeId)}</strong> ${UI.esc(p.unit)}</div>
-        ${type==='out'?`<div class="fg"><label>出库批次</label><select id="txBatchId">${batchOptions}</select></div>`:
+        ${type==='out'?`<div class="fg"><label>优先批次</label><select id="txBatchId">${batchOptions}</select></div>${batchCountNote}`:
         `<div class="fg"><label>批次号</label><input type="text" id="txBatchNoNew" placeholder="如：B20260728"></div>
          <div class="fg"><label>生产日期</label><input type="date" id="txProdDate"></div>
          <div class="fg"><label>保质期</label><input type="date" id="txExpDate"></div>`}
@@ -1213,16 +1231,46 @@ const Pages = {
 
   confirmStoreTx(productId,type,storeId){
     const qty=parseInt(document.getElementById('txQty').value)||0;
-    const remarks=document.getElementById('txRemarks').value||'';
+    let remarks=document.getElementById('txRemarks').value||'';
     let allBatches=DB.allBatches();
     const p=DB.allProducts().find(x=>x.id==productId);
 
     if(qty===0&&type==='out'){UI.toast('出库数量不能为0','error');return}
     if(type==='out'){
-      const batchId=parseInt(document.getElementById('txBatchId').value);
-      const idx=allBatches.findIndex(b=>b.id==batchId);
-      if(idx===-1||allBatches[idx].quantity<qty){UI.toast('库存不足','error');return}
-      allBatches[idx].quantity-=qty;
+      // 多批次出库：优先批次不够时，自动从其他批次按临期顺序补齐
+      const productBatches=allBatches.filter(b=>b.product_id==productId&&b.store_id==storeId&&b.quantity>0);
+      const totalAvailable=productBatches.reduce((s,b)=>s+b.quantity,0);
+      if(totalAvailable<qty){
+        UI.toast(`库存不足 (可用${totalAvailable},需要${qty})`,'error');
+        return;
+      }
+      // 排序：用户选择的批次优先，然后按临期顺序
+      const selectedBatchId=parseInt(document.getElementById('txBatchId').value);
+      const sortedBatches=[...productBatches].sort((a,b)=>{
+        if(a.id===selectedBatchId)return -1;
+        if(b.id===selectedBatchId)return 1;
+        const ea=a.expiration_date||'9999';
+        const eb=b.expiration_date||'9999';
+        return ea.localeCompare(eb);
+      });
+      let remaining=qty;
+      const takenBatches=[];
+      for(const batch of sortedBatches){
+        if(remaining<=0)break;
+        const take=Math.min(remaining,batch.quantity);
+        batch.quantity-=take;
+        remaining-=take;
+        takenBatches.push({batch_no:batch.batch_no,quantity:take});
+      }
+      if(remaining>0){
+        UI.toast(`库存不足`,'error');
+        return;
+      }
+      // 在备注中记录从多个批次出库的情况
+      if(takenBatches.length>1){
+        const detail=takenBatches.map(b=>`${b.batch_no}×${b.quantity}`).join('+');
+        remarks=remarks?`${remarks} (来自${detail})`:`来自${detail}`;
+      }
     }else{
       const batchNo=document.getElementById('txBatchNoNew').value||('B'+new Date().toISOString().slice(0,10).replace(/-/g,''));
       const prodDate=document.getElementById('txProdDate').value;
@@ -1251,21 +1299,28 @@ const Pages = {
     const fromStoreId=UI.currentStoreId;
     const p=DB.allProducts().find(x=>x.id==productId);
     if(!p)return;
-    const batches=DB.batches(productId,fromStoreId);
-    if(!batches.length){UI.toast('该产品在此门店无库存','error');return}
+    const allBatches=DB.batches(productId,fromStoreId);
+    const batches=allBatches.filter(b=>b.quantity>0);
+    if(!batches.length){UI.toast('该产品在此门店无库存可调配','error');return}
     const fromStore=DB.stores().find(s=>s.id==fromStoreId);
     const otherStores=DB.stores().filter(s=>s.id!=fromStoreId);
     if(!otherStores.length){UI.toast('没有其他门店可调配','error');return}
 
-    let batchOptions=batches.map(b=>{
+    // 临期优先排序
+    const sortedBatches=[...batches].sort((a,b)=>{
+      const ea=a.expiration_date||'9999';
+      const eb=b.expiration_date||'9999';
+      return ea.localeCompare(eb);
+    });
+    let batchOptions=sortedBatches.map((b,i)=>{
       const isExp=b.expiration_date&&DB.isExpiring(b.expiration_date);
-      return `<option value="${b.id}" ${isExp?'style="color:var(--danger)"':''}>批次${UI.esc(b.batch_no)} | ${UI.fmtDate(b.expiration_date)} | 库存${b.quantity}${UI.esc(p.unit)}</option>`;
+      return `<option value="${b.id}" ${i===0?'selected':''}>批次${UI.esc(b.batch_no)} | ${UI.fmtDate(b.expiration_date)} | 库存${b.quantity}${UI.esc(p.unit)}${isExp?' ⚠️':''}</option>`;
     }).join('');
     let storeOptions=otherStores.map(s=>`<option value="${s.id}">${UI.esc(s.name)}</option>`).join('');
 
     UI.showModal(
       '🔄 调配 - '+p.name,
-      `<div style="text-align:center;margin-bottom:10px;color:var(--t2);font-size:13px">从 <strong>${UI.esc(fromStore?fromStore.name:'')}</strong> 调出</div>
+      `<div style="text-align:center;margin-bottom:10px;color:var(--t2);font-size:13px">从 <strong>${UI.esc(fromStore?fromStore.name:'')}</strong> 调出 (库存 ${DB.storeProductQty(productId,fromStoreId)} ${UI.esc(p.unit)})</div>
       <div class="fg"><label>调出批次</label><select id="tfBatchId">${batchOptions}</select></div>
       <div class="fg"><label>调入门店</label><select id="tfToStore">${storeOptions}</select></div>
       <div class="fg"><label>数量</label>
