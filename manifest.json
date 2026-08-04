@@ -1,0 +1,13 @@
+{
+  "name": "悠小仙产品库存",
+  "short_name": "悠小仙库存",
+  "start_url": "./?source=pwa",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#5B7B95",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
