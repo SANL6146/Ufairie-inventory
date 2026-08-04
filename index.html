@@ -1128,10 +1128,10 @@ const Pages = {
           <input type="text" id="aspBatchNo" required placeholder="B20260728" value="B${new Date().toISOString().slice(0,10).replace(/-/g,'')}"></div>
         <div class="fr">
           <div class="fg f1"><label>生产日期</label><input type="date" id="aspProdDate"></div>
-          <div class="fg f1"><label>保质期至 <span class="req">*</span></label><input type="date" id="aspExpDate" required></div>
+          <div class="fg f1"><label>保质期至</label><input type="date" id="aspExpDate"></div>
         </div>
         <div class="fr">
-          <div class="fg f1"><label>数量 <span class="req">*</span></label><input type="number" id="aspQty" required min="1" value="1"></div>
+          <div class="fg f1"><label>数量</label><input type="number" id="aspQty" min="0" value="0" placeholder="0表示仅登记无库存"></div>
           <div class="fg f1"><label>购入日期</label><input type="date" id="aspPurchDate" value="${new Date().toISOString().slice(0,10)}"></div>
         </div>
       </div>
@@ -1161,7 +1161,7 @@ const Pages = {
     const batchNo=document.getElementById('aspBatchNo').value.trim()||('B'+new Date().toISOString().slice(0,10).replace(/-/g,''));
     const prodDate=document.getElementById('aspProdDate').value;
     const expDate=document.getElementById('aspExpDate').value;
-    const qty=parseInt(document.getElementById('aspQty').value)||1;
+    const qty=parseInt(document.getElementById('aspQty').value)||0;
     const purchDate=document.getElementById('aspPurchDate').value;
     const batches=DB.allBatches();
     batches.push({
@@ -1200,8 +1200,8 @@ const Pages = {
          <div class="fg"><label>保质期</label><input type="date" id="txExpDate"></div>`}
         <div class="fg"><label>数量</label>
           <div style="display:flex;align-items:center;gap:14px;justify-content:center">
-            <button type="button" class="d-qty-btn" onclick="let e=document.getElementById('txQty');e.value=Math.max(1,parseInt(e.value||1)-1);return false">−</button>
-            <input type="number" id="txQty" value="1" min="1" inputmode="none" readonly style="width:60px;text-align:center;font-size:20px;font-weight:700;border:none;background:var(--bg);border-radius:8px;padding:6px;pointer-events:none">
+            <button type="button" class="d-qty-btn" onclick="let e=document.getElementById('txQty');e.value=Math.max(0,parseInt(e.value||0)-1);return false">−</button>
+            <input type="number" id="txQty" value="1" min="0" inputmode="none" readonly style="width:60px;text-align:center;font-size:20px;font-weight:700;border:none;background:var(--bg);border-radius:8px;padding:6px;pointer-events:none">
             <button type="button" class="d-qty-btn" onclick="let e=document.getElementById('txQty');e.value=parseInt(e.value||1)+1;return false">+</button>
           </div></div>
         <div class="fg"><label>备注</label><input type="text" id="txRemarks" placeholder="选填"></div>
@@ -1212,11 +1212,12 @@ const Pages = {
   },
 
   confirmStoreTx(productId,type,storeId){
-    const qty=parseInt(document.getElementById('txQty').value)||1;
+    const qty=parseInt(document.getElementById('txQty').value)||0;
     const remarks=document.getElementById('txRemarks').value||'';
     let allBatches=DB.allBatches();
     const p=DB.allProducts().find(x=>x.id==productId);
 
+    if(qty===0&&type==='out'){UI.toast('出库数量不能为0','error');return}
     if(type==='out'){
       const batchId=parseInt(document.getElementById('txBatchId').value);
       const idx=allBatches.findIndex(b=>b.id==batchId);
