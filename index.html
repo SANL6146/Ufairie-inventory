@@ -8,9 +8,9 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=2">
-<link rel="manifest" href="manifest.json?v=2">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=3">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=3">
+<link rel="manifest" href="manifest.json?v=3">
 <title>悠小仙产品库存</title>
 <style>
 
@@ -576,16 +576,30 @@ const Auth = {
   isLocked(){return false}
 };
 
+/* ==================== Cookie 工具（iOS Safari/PWA 共享） ==================== */
+const Cookie={
+  set(n,v,d=365){const e=new Date();e.setTime(e.getTime()+d*864e5);document.cookie=n+'='+encodeURIComponent(v)+';expires='+e.toUTCString()+';path=/;SameSite=Lax'},
+  get(n){const m=document.cookie.match(new RegExp('(^| )'+n+'=([^;]+)'));return m?decodeURIComponent(m[2]):null},
+  del(n){document.cookie=n+'=;expires=Thu,01 Jan 1970 00:00:00 UTC;path=/'}
+};
+
 /* ==================== GitHub 云同步 ==================== */
 const Sync = {
   REPO:'SANL6146/Ufairie-inventory',
   PATH:'data.json',
 
-  isEnabled(){return !!localStorage.getItem('sk_gh_token')},
-  getToken(){return localStorage.getItem('sk_gh_token')||''},
-  setToken(t){localStorage.setItem('sk_gh_token',t)},
-  isAutoSync(){return localStorage.getItem('sk_gh_auto')!=='0'},
-  setAutoSync(v){localStorage.setItem('sk_gh_auto',v?'1':'0')},
+  isEnabled(){
+    if(localStorage.getItem('sk_gh_token'))return true;
+    if(Cookie.get('sk_gh_token'))return true;
+    return false;
+  },
+  getToken(){return localStorage.getItem('sk_gh_token')||Cookie.get('sk_gh_token')||''},
+  setToken(t){
+    localStorage.setItem('sk_gh_token',t);
+    if(t)Cookie.set('sk_gh_token',t);else Cookie.del('sk_gh_token');
+  },
+  isAutoSync(){return (localStorage.getItem('sk_gh_auto')||Cookie.get('sk_gh_auto'))!=='0'},
+  setAutoSync(v){localStorage.setItem('sk_gh_auto',v?'1':'0');Cookie.set('sk_gh_auto',v?'1':'0')},
 
   _decodeBase64(str){
     const bin=atob(str);
@@ -1934,8 +1948,26 @@ document.getElementById('modalOverlay').onclick=e=>{if(e.target===document.getEl
     localStorage.setItem('sk_tx_migrated','2');
   }
 
+  // PWA 独立模式检测：iOS Safari 和桌面 PWA 的 localStorage 是隔离的
+  // 如果 PWA 无数据但 Cookie 有 Token，自动从云端恢复
+  const isStandalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+  const hasLocalData=DB.stores().length>0&&DB.brands().length>0;
+
+  if(isStandalone && !hasLocalData){
+    const cookieToken=Cookie.get('sk_gh_token');
+    if(cookieToken){
+      localStorage.setItem('sk_gh_token',cookieToken);
+      try{
+        const ok=await Sync.pull(true);
+        if(ok&&DB.stores().length>0&&DB.brands().length>0){
+          location.reload();return;
+        }
+      }catch(e){console.error('PWA auto-sync failed',e)}
+    }
+  }
+
   // 已有数据直接展示
-  if(DB.stores().length>0 && DB.brands().length>0){
+  if(hasLocalData){
     if(Sync.isEnabled())await Sync.pull(true);
     if(DB.stores().length>0){Pages.loadHome();return;}
   }
