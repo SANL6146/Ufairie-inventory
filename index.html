@@ -8,9 +8,9 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=4">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=4">
-<link rel="manifest" href="manifest.json?v=4">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=2">
+<link rel="manifest" href="manifest.json?v=2">
 <title>悠小仙产品库存</title>
 <style>
 
@@ -1977,13 +1977,16 @@ window.addEventListener('pagehide',()=>Sync.flushSync());
     }
   }
 
-  // 已有数据：先 push 本地到云端（防丢失），再 pull 云端最新
+  // 已有数据：先渲染页面，后台异步同步（不阻塞渲染）
   if(hasLocalData){
+    Pages.loadHome();
     if(Sync.isEnabled()){
-      await Sync.push(true);   // 先备份本地数据
-      await Sync.pull(true);   // 再同步云端最新
+      // 后台先 push 本地数据，再 pull 云端最新
+      (async()=>{
+        try{await Sync.push(true);await Sync.pull(true);Pages.loadHome();}catch(e){}
+      })();
     }
-    if(DB.stores().length>0){Pages.loadHome();return;}
+    return;
   }
 
   // 新用户尝试云端拉取
