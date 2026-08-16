@@ -8,9 +8,9 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=3">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=3">
-<link rel="manifest" href="manifest.json?v=3">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=4">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=4">
+<link rel="manifest" href="manifest.json?v=4">
 <title>悠小仙产品库存</title>
 <style>
 
@@ -686,7 +686,14 @@ const Sync = {
   autoSync(){
     if(!this.isEnabled()||!this.isAutoSync())return;
     clearTimeout(this._debounce);
-    this._debounce=setTimeout(()=>this.push(true),2000);
+    this._debounce=setTimeout(()=>this.push(true),800);
+  },
+  // 确保数据已推送（用于页面关闭前）
+  flushSync(){
+    if(!this.isEnabled()||!this.isAutoSync())return;
+    clearTimeout(this._debounce);
+    // 用 sendBeacon 方式不行（GitHub API 需要 PUT），只能用 fetch + keepalive
+    this.push(true);
   }
 };
 
@@ -1895,6 +1902,10 @@ localStorage.removeItem('sk_pw'); // 清除旧密码数据 */
 document.getElementById('btnBack').onclick=()=>UI.goBack();
 document.getElementById('modalOverlay').onclick=e=>{if(e.target===document.getElementById('modalOverlay'))UI.closeModal()};
 
+// 页面隐藏/关闭前确保数据已推送到云端（防止 PWA 被杀导致数据丢失）
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')Sync.flushSync()});
+window.addEventListener('pagehide',()=>Sync.flushSync());
+
 (async function initApp(){
   // 数据迁移：brands去掉store_id，batches增加store_id
   const brands=DB.brands();
@@ -1966,9 +1977,12 @@ document.getElementById('modalOverlay').onclick=e=>{if(e.target===document.getEl
     }
   }
 
-  // 已有数据直接展示
+  // 已有数据：先 push 本地到云端（防丢失），再 pull 云端最新
   if(hasLocalData){
-    if(Sync.isEnabled())await Sync.pull(true);
+    if(Sync.isEnabled()){
+      await Sync.push(true);   // 先备份本地数据
+      await Sync.pull(true);   // 再同步云端最新
+    }
     if(DB.stores().length>0){Pages.loadHome();return;}
   }
 

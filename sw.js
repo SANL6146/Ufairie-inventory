@@ -1,5 +1,5 @@
 /* UFairie Inventory - Service Worker */
-const CACHE_NAME = 'ufairie-v3';
+const CACHE_NAME = 'ufairie-v4';
 
 // Install: skip waiting to activate immediately
 self.addEventListener('install', (e) => {
