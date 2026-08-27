@@ -8,9 +8,9 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=5">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=5">
-<link rel="manifest" href="manifest.json?v=5">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=6">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=6">
+<link rel="manifest" href="manifest.json?v=6">
 <title>悠小仙产品库存</title>
 <style>
 
@@ -647,40 +647,57 @@ const Sync = {
   async push(silent){
     const token=this.getToken();
     if(!token)return false;
+    // 串行锁：防止自动同步与手动推送并发，导致 sha 冲突
+    while(this._pushing){
+      await new Promise(r=>setTimeout(r,300));
+    }
+    this._pushing=true;
     try{
-      let sha=null;
-      try{
-        const getRes=await fetch(`https://api.github.com/repos/${this.REPO}/contents/${this.PATH}`,{
-          headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github.v3+json'}
+      let lastErr=null;
+      // 最多重试3次：GET sha → PUT，409/422冲突时重新取 sha 再试
+      for(let attempt=0;attempt<3;attempt++){
+        let sha=null;
+        try{
+          const getRes=await fetch(`https://api.github.com/repos/${this.REPO}/contents/${this.PATH}`,{
+            headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github.v3+json'}
+          });
+          if(getRes.ok){const j=await getRes.json();sha=j.sha}
+        }catch{}
+
+        const data={
+          stores:DB.stores(),brands:DB.brands(),products:DB.allProducts(),batches:DB.allBatches(),txs:DB.txs(),
+          nids:{store:localStorage.getItem('sk_nid_store'),brand:localStorage.getItem('sk_nid_brand'),prod:localStorage.getItem('sk_nid_prod'),batch:localStorage.getItem('sk_nid_batch'),tx:localStorage.getItem('sk_nid_tx')},
+          synced_at:new Date().toISOString()
+        };
+        const content=await this._encodeBase64(JSON.stringify(data));
+        const body={message:'自动同步',content};
+        if(sha)body.sha=sha;
+
+        const res=await fetch(`https://api.github.com/repos/${this.REPO}/contents/${this.PATH}`,{
+          method:'PUT',
+          headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github.v3+json','Content-Type':'application/json'},
+          body:JSON.stringify(body)
         });
-        if(getRes.ok){const j=await getRes.json();sha=j.sha}
-      }catch{}
-
-      const data={
-        stores:DB.stores(),brands:DB.brands(),products:DB.allProducts(),batches:DB.allBatches(),txs:DB.txs(),
-        nids:{store:localStorage.getItem('sk_nid_store'),brand:localStorage.getItem('sk_nid_brand'),prod:localStorage.getItem('sk_nid_prod'),batch:localStorage.getItem('sk_nid_batch'),tx:localStorage.getItem('sk_nid_tx')},
-        synced_at:new Date().toISOString()
-      };
-      const content=await this._encodeBase64(JSON.stringify(data));
-      const body={message:'自动同步',content};
-      if(sha)body.sha=sha;
-
-      const res=await fetch(`https://api.github.com/repos/${this.REPO}/contents/${this.PATH}`,{
-        method:'PUT',
-        headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github.v3+json','Content-Type':'application/json'},
-        body:JSON.stringify(body)
-      });
-      if(!res.ok){
+        if(res.ok){
+          this._lastError=null;
+          if(!silent)UI.toast('已同步到云端','success');
+          return true;
+        }
         const ej=await res.json().catch(()=>({}));
-        throw new Error(ej.message||'HTTP '+res.status);
+        lastErr=new Error(ej.message||('HTTP '+res.status));
+        // 409=sha冲突 422=sha缺失/文件已变更 —— 重新取 sha 重试
+        if(res.status===409||res.status===422){continue}
+        break; // 其他错误（401 Token无效等）不重试
       }
-      if(!silent)UI.toast('已同步到云端','success');
-      return true;
-    }catch(e){
-      if(!silent){UI.toast('同步失败: '+e.message,'error');console.error('Sync push error:',e)}
+      this._lastError=lastErr?lastErr.message:'未知错误';
+      if(!silent){UI.toast('同步失败: '+this._lastError,'error');console.error('Sync push error:',lastErr)}
       return false;
+    }finally{
+      this._pushing=false;
     }
   },
+  _pushing:false,
+  _lastError:null,
 
   _debounce:null,
   autoSync(){
@@ -1881,7 +1898,7 @@ const Settings = {
     if(!Sync.getToken()){UI.toast('请先配置 Token','error');return}
     document.getElementById('syncMsg').textContent='正在推送到云端…';
     const ok=await Sync.push(true);
-    document.getElementById('syncMsg').textContent=ok?'推送成功 ✅':'推送失败，请打开浏览器控制台查看具体错误';
+    document.getElementById('syncMsg').textContent=ok?'推送成功 ✅':('推送失败 ❌ '+(Sync._lastError||'未知错误'));
   },
   async testConn(){
     const token=Sync.getToken();
